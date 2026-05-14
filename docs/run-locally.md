@@ -2,6 +2,9 @@
 
 End-to-end setup for backend (FastAPI + Ollama + Gemma 4) and frontend (Next.js 14).
 
+Judges who want to verify real Gemma 4 inference should use the dedicated
+copy-paste guide: [docs/judge-local-gemma.md](judge-local-gemma.md).
+
 ## 0. Prerequisites
 
 | Tool | Why | Verify |

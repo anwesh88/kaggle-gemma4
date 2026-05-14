@@ -11,14 +11,16 @@ Important honesty note for judging: the app never invents Gemma insights. If
 Railway is running on CPU without an Ollama/Gemma runtime, behavioral analysis
 returns an explicit "Gemma unavailable" state. To show real Gemma 4 reasoning in
 the hosted demo, point `OLLAMA_HOST` at a reachable Ollama/GPU service or use a
-GPU backend. The local clone path below runs real Gemma through Ollama.
+GPU backend. If the paid GPU runtime is offline for budget reasons, use
+[`docs/judge-local-gemma.md`](judge-local-gemma.md) to verify the same Gemma
+pipeline locally.
 
 ---
 
 ## 1. Push to GitHub
 
 ```bash
-git remote set-url origin https://github.com/an-wesh/kaggle-gemma4.git
+git remote set-url origin https://github.com/anwesh88/kaggle-gemma4.git
 git add .
 git commit -m "Prepare Finsight OS for Vercel and Railway"
 git push -u origin main
@@ -40,7 +42,7 @@ Create a Railway service from the GitHub repo.
 
 Project settings:
 
-- Source repo: `an-wesh/kaggle-gemma4`
+- Source repo: `anwesh88/kaggle-gemma4`
 - Branch: `main`
 - Root directory: `backend`
 - Builder: Railpack
@@ -115,7 +117,7 @@ Import the same GitHub repo into Vercel.
 
 Project settings:
 
-- Source repo: `an-wesh/kaggle-gemma4`
+- Source repo: `anwesh88/kaggle-gemma4`
 - Branch: `main`
 - Framework preset: Next.js
 - Root directory: `frontend`
@@ -162,6 +164,8 @@ modes still work.
 ## 5. Local Judge Path for Real Gemma
 
 This is the strongest path for judging "real, functional Gemma 4" behavior.
+For a more detailed copy-paste guide, see
+[`docs/judge-local-gemma.md`](judge-local-gemma.md).
 
 ```powershell
 # Terminal 1: Gemma

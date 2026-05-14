@@ -8,7 +8,7 @@
 
 ## Path A — 30 seconds: hosted live demo
 
-Open: **https://your-vercel-app.vercel.app**
+Open: **https://kaggle-gemma4.vercel.app**
 
 You'll see a mode picker. Click **Demo Mode** → you land on the dashboard
 with a high-risk session pre-loaded → click **BUY** on any instrument →
@@ -19,8 +19,10 @@ seconds.
 What's running behind the URL: Next.js on Vercel and FastAPI on Railway.
 Real NSE prices come from Yahoo and paper trades persist through SQLite. If
 the Railway backend can reach an Ollama/Gemma runtime, the Thinking Log shows
-real Gemma inference; otherwise the UI shows an explicit "Gemma unavailable"
-state rather than fake insight.
+real Gemma inference. If the paid GPU/Ollama runtime is offline, the UI shows
+an explicit "Gemma unavailable" state rather than fake insight. To verify real
+Gemma execution without relying on paid cloud GPU uptime, use
+[`docs/judge-local-gemma.md`](docs/judge-local-gemma.md).
 
 If you want to verify the integration with a real Zerodha account, follow
 **Path C** below — the live demo intentionally does not expose Live Kite
@@ -34,7 +36,7 @@ Kite app redirect URL is set to the Railway `/kite/callback` URL.
 If you have Docker Desktop or Docker Engine installed:
 
 ```bash
-git clone https://github.com/an-wesh/kaggle-gemma4.git
+git clone https://github.com/anwesh88/kaggle-gemma4.git
 cd kaggle-gemma4
 cp backend/.env.example backend/.env
 docker compose up
@@ -59,7 +61,7 @@ To shut down: `Ctrl+C` then `docker compose down`. To wipe state:
 ## Path C — 10 minutes: native install (for deep code review)
 
 ```powershell
-git clone https://github.com/an-wesh/kaggle-gemma4.git
+git clone https://github.com/anwesh88/kaggle-gemma4.git
 cd kaggle-gemma4
 
 # Backend
@@ -212,7 +214,7 @@ message and the OS — we'll fix and credit you in the next release.
 ## Contact
 
 Submission by Anwesh Mohanty for the Kaggle Gemma 4 Good Hackathon, May
-2026. Email: anweshmohanty69@gmail.com · GitHub: @an-wesh.
+2026. Email: anweshmohanty69@gmail.com · GitHub: @anwesh88.
 
 If you're at SEBI, Zerodha, or any institution working on retail investor
 protection in India, see `docs/pilot-pitch.md` for a one-page proposal

@@ -98,7 +98,7 @@ If you need to update after submission:
 |---|---|---|
 | YouTube video shows "Private — sign in" to judges | You uploaded as Unlisted, not Public | Change to Public in YouTube Studio |
 | Vercel deploy returns 404 | Build failed silently | Check Vercel deployment logs; usually a missing env var |
-| Hosted analysis shows Gemma unavailable | Railway CPU backend cannot reach an Ollama/Gemma runtime | Use local Ollama for judging or point `OLLAMA_HOST` at a reachable GPU/Ollama service |
+| Hosted analysis shows Gemma unavailable | Railway CPU backend cannot reach an Ollama/Gemma runtime, or the paid GPU pod is offline | Use `docs/judge-local-gemma.md` for local verification or point `OLLAMA_HOST` at a reachable GPU/Ollama service |
 | `/analyze-behavior` returns 500 | Backend startup/config issue | Check Railway logs and confirm all required backend env vars are set |
 | Live Kite "Login with Zerodha" 404s | KITE_REDIRECT_URL doesn't match the registered app's URL | Step 1 of `docs/kite-setup.md` |
 | Cover image attaches but renders blurry | Wrong aspect ratio uploaded | Re-export at exactly 1280×720 PNG |

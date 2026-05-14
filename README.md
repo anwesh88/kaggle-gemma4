@@ -98,6 +98,7 @@ Open [`docs/architecture.html`](docs/architecture.html) in any browser for the f
 | Doc | Purpose |
 |---|---|
 | [`docs/run-locally.md`](docs/run-locally.md) | End-to-end local setup (backend + frontend + Kite + troubleshooting) |
+| [`docs/judge-local-gemma.md`](docs/judge-local-gemma.md) | Copy-paste judge path to verify real Gemma 4 inference locally |
 | [`docs/kaggle-writeup.md`](docs/kaggle-writeup.md) | Kaggle submission writeup (1500 words) |
 | [`docs/architecture.html`](docs/architecture.html) | System architecture diagram (open in browser) |
 | [`docs/cover-image.html`](docs/cover-image.html) | 1280×720 submission cover image |

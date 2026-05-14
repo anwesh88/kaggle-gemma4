@@ -3,7 +3,7 @@
 ## A privacy-first behavioral guardian for India's 9.6 million retail F&O traders, built on Gemma 4
 
 > **Track:** Digital Equity & Inclusivity (primary) · Safety & Trust (secondary)
-> **Live demo:** https://your-vercel-app.vercel.app · **Code:** https://github.com/an-wesh/kaggle-gemma4
+> **Live demo:** https://kaggle-gemma4.vercel.app · **Code:** https://github.com/anwesh88/kaggle-gemma4
 > **Video:** https://youtu.be/[VIDEO_ID]
 
 ---
@@ -95,7 +95,7 @@ Gemma 4 made the technology accessible. Finsight OS makes the protection inevita
 
 - **Architecture diagram**: `docs/architecture.html` (also in Media Gallery as PNG)
 - **Cover image**: `docs/cover-image.html` rendered to `cover.png` in Media Gallery
-- **Live demo**: deployed at the URL above (Vercel frontend + Railway backend). For real Gemma reasoning on hosted infrastructure, Railway must reach an Ollama/GPU runtime; otherwise judges can run the local Ollama path documented in `docs/deploy.md`.
+- **Live demo**: deployed at the URL above (Vercel frontend + Railway backend). For real Gemma reasoning on hosted infrastructure, Railway must reach an Ollama/GPU runtime. If the paid GPU runtime is offline for budget reasons, judges can run the exact local Ollama verification path documented in `docs/judge-local-gemma.md`.
 - **Public code repo**: GitHub link above
 - **Face-cam video script + shot list**: `docs/video-script.md`
 - **Teleprompter beats + recording setup**: `docs/talking-points.md`, `docs/recording-setup.md`

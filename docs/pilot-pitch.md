@@ -72,7 +72,7 @@ Total pilot budget: under ₹20 lakh (~$24K), self-funded by the project team vi
 ## Contact
 
 Anwesh Mohanty · anweshmohanty69@gmail.com · GitHub: @anweshmohanty
-Open source: https://github.com/an-wesh/kaggle-gemma4
+Open source: https://github.com/anwesh88/kaggle-gemma4
 Submission: Kaggle Gemma 4 Good Hackathon, May 2026
 
 This document is intentionally one page so it can be forwarded inside large
