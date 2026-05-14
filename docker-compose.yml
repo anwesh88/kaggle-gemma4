@@ -20,7 +20,9 @@
 
 services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.local
     image: finsight-os-backend:latest
     container_name: finsight-backend
     ports:

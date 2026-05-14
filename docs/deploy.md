@@ -50,6 +50,11 @@ Project settings:
 - Health check path: provided by `railway.json` (`/health`)
 - Serverless: off for judging, so the backend does not sleep during demos
 
+Railway must not use a Dockerfile for the backend service. The local Docker/Ollama
+image is kept as `backend/Dockerfile.local`; if Railway logs show `ollama.com/install.sh`,
+the service is building the wrong way. Keep the builder on Railpack and the root
+directory on `backend`.
+
 If Railway does not read the config file, set these fields manually:
 
 ```bash

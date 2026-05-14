@@ -1,4 +1,4 @@
-# Finsight OS — backend Dockerfile
+# Finsight OS - backend Dockerfile for local/full Docker runs only.
 #
 # Builds a single image that contains:
 #   - Python 3.11 + the FastAPI backend
@@ -6,19 +6,18 @@
 #
 # Designed for `docker compose up` from the repo root, but also runnable
 # standalone:
-#   docker build -t finsight-backend ./backend
+#   docker build -f ./backend/Dockerfile.local -t finsight-backend ./backend
 #   docker run -p 8000:8000 -p 11434:11434 -v ./backend/data:/app/data finsight-backend
 #
-# On hardware without a GPU, gemma4:e2b runs on CPU and /analyze-behavior
-# reports Gemma unavailable if the model exceeds the configured timeout.
-# On hardware with NVIDIA GPU + nvidia-container-toolkit, set OLLAMA_NUM_GPU=99
-# in the env and real Gemma inference completes in ~5-8s.
+# Do not rename this file to `Dockerfile` in `backend/` for Railway deploys.
+# Railway should use Railpack + requirements.txt, not this local Ollama image.
 
 FROM python:3.11-slim
 
-# OS deps + Ollama binary (single-step layer for caching)
+# OS deps + Ollama binary (single-step layer for caching).
+# Ollama's installer currently requires zstd to extract the release archive.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends curl ca-certificates \
+ && apt-get install -y --no-install-recommends curl ca-certificates zstd \
  && curl -fsSL https://ollama.com/install.sh | sh \
  && rm -rf /var/lib/apt/lists/*
 
@@ -29,8 +28,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Pre-pull Gemma 4 E2B into the image so first-run is fast.
-# This adds ~2.5 GB to the image but saves 5-10 minutes of cold-start
-# on every fresh container.
+# This adds several GB to the image but saves a cold model pull on each fresh container.
 RUN ollama serve & \
     sleep 5 && \
     ollama pull gemma4:e2b && \
@@ -39,11 +37,10 @@ RUN ollama serve & \
 # Copy the application
 COPY . .
 
-# Both the FastAPI port and the Ollama port (so frontend / judges can hit
-# either directly if they want to inspect Ollama responses)
+# Both the FastAPI port and the Ollama port.
 EXPOSE 8000 11434
 
-# Default env — overridable via docker compose or `docker run -e`
+# Default env - overridable via docker compose or `docker run -e`.
 ENV DEMO_MODE=true \
     OLLAMA_HOST=http://localhost:11434 \
     OLLAMA_MODEL=gemma4:e2b \
@@ -51,7 +48,6 @@ ENV DEMO_MODE=true \
     PYTHONUNBUFFERED=1
 
 # Start Ollama in background, then the FastAPI server in foreground.
-# Using a small entrypoint so signals propagate cleanly to both.
 COPY <<'EOF' /entrypoint.sh
 #!/bin/sh
 set -e
