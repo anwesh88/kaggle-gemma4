@@ -318,7 +318,7 @@ export function TradePanel({ analysis, onTradeExecuted }: Props) {
                 {theme.bumpHeadline}
               </h3>
               <p style={{ fontSize: "13px", color: "#6B6860", lineHeight: "1.6" }}>
-                Gemma 4 detected{" "}
+                AI model detected{" "}
                 <strong style={{ color: "#DC2626" }}>{analysis?.detected_pattern}</strong>
                 {" "}— behavioral score{" "}
                 <strong style={{ color: "#DC2626" }}>{analysis?.behavioral_score}/1000</strong>.
@@ -672,7 +672,7 @@ export function TradePanel({ analysis, onTradeExecuted }: Props) {
               fontSize: "11px", color: "#DC2626", textAlign: "center",
               lineHeight: "1.5",
             }}>
-              Gemma 4 detected <strong>{analysis?.detected_pattern}</strong>.
+              AI model detected <strong>{analysis?.detected_pattern}</strong>.
               A commitment phrase will be required before your order executes.
             </p>
           )}

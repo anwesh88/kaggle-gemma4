@@ -4,7 +4,7 @@ import { useSyncExternalStore } from "react";
 import { thinkingLog, type ThinkingLogEntry } from "@/lib/thinkingLogStore";
 
 /**
- * useThinkingLog — exposes the append-only persistent Gemma log to
+ * useThinkingLog — exposes the append-only persistent AI model log to
  * components. Survives component unmount, route changes, and page reload.
  */
 export function useThinkingLog(): {

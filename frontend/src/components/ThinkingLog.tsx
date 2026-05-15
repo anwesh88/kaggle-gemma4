@@ -10,7 +10,7 @@ interface Props {
   streamingText?: string;
   /** True while tokens are still arriving from the backend */
   streaming?: boolean;
-  /** Most recent status line from the stream (e.g. "Loading gemma4:e4b…") */
+  /** Most recent status line from the stream. */
   streamStatus?: string;
   /** Full analysis — used to render clickable evidence per step */
   analysis?: BehavioralAnalysis | null;
@@ -280,7 +280,7 @@ export function ThinkingLog({
             textTransform: "uppercase", letterSpacing: "0.07em",
             display: "flex", alignItems: "center", gap: "6px",
           }}>
-            Gemma Thinking Log
+            AI model Thinking Log
             {streaming && (
               <span style={{
                 fontSize: "9px", fontWeight: "700",
@@ -300,8 +300,8 @@ export function ThinkingLog({
           </div>
           <div style={{ fontSize: "10px", color: "#9B9890", marginTop: "1px" }}>
             {streaming
-              ? (streamStatus || "Streaming Gemma reasoning…")
-              : `${stepCount} reasoning steps · local Gemma · data stays private${
+              ? (streamStatus || "Streaming AI model reasoning…")
+              : `${stepCount} reasoning steps · local AI model · data stays private${
                   inferenceTime ? ` · ${inferenceTime.toFixed(1)}s` : ""
                 }`}
           </div>
@@ -349,7 +349,7 @@ export function ThinkingLog({
               fontFamily: "'DM Mono', 'Courier New', monospace",
               padding: "8px 10px",
             }}>
-              {streamStatus || "Connecting to Gemma 4…"}<span style={{
+              {streamStatus || "Connecting to AI model…"}<span style={{
                 animation: "tl-cursor 1s infinite", color: "#F97316", fontWeight: "700",
               }}>█</span>
             </p>
@@ -478,7 +478,7 @@ export function ThinkingLog({
 // ── Persistent run history ───────────────────────────────────────────────────
 // Reads from the global thinkingLog store. Survives component unmount, page
 // reload, mode switches — anything short of an explicit clear. Groups entries
-// by runId so the user can scroll back through every analysis Gemma has ever
+// by runId so the user can scroll back through every analysis the AI model has ever
 // produced for this account.
 
 function PersistentRunHistory() {

@@ -24,7 +24,7 @@ export interface BehavioralAnalysis {
   sebi_source: string | null;
   thinking_log: string | null;
   chart_insight: string | null;
-  inference_seconds: number | null;   // Real local-CPU Gemma latency
+  inference_seconds: number | null;   // Real local-CPU AI model latency
 }
 
 export interface DNASession {

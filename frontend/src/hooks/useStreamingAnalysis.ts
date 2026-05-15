@@ -17,7 +17,7 @@ interface UseStreamingOptions {
    *  on the polling interval. Used in Paper mode with zero trades. */
   enabled?: boolean;
   /** Context hash — when this string/number changes, the hook re-runs the
-   *  analysis. Used to gate Gemma re-execution to *meaningful* state changes
+   *  analysis. Used to gate AI model re-execution to meaningful state changes
    *  (new trades, watchlist edits, mode flip) rather than every UI re-render. */
   contextHash?: string | number | null;
   /** Debounce window (ms) before re-running analysis after the hash changes.
@@ -81,7 +81,7 @@ export function useStreamingAnalysis(
     setS(prev => ({ ...prev, streamingText: "", status: "", streaming: true, loading: true }));
 
     // Persistent thinking log: append a run header so the user can scroll
-    // back through every analysis Gemma has ever produced this session.
+    // back through every analysis the AI model has ever produced this session.
     const mode = currentMode() as "demo" | "paper" | "kite";
     const runId = thinkingLog.startRun(mode, `hash=${String(contextHash ?? "init")}`);
 

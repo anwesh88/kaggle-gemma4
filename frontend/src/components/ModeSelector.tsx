@@ -102,7 +102,7 @@ export function ModeSelector() {
               Finsight OS
             </div>
             <div style={{ fontSize: "12px", color: "#9B9890", letterSpacing: "0.04em" }}>
-              BEHAVIORAL GUARDIAN · BUILT ON GEMMA 4
+              BEHAVIORAL GUARDIAN · BUILT ON AI MODEL
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function ModeSelector() {
             features={[
               "5 closed losing trades + 2 open positions",
               "Speed Bump fires on first analysis",
-              "All Gemma 4 features active",
+              "All AI model features active",
               "Zero broker credentials needed",
             ]}
             cta="Enter Demo"
@@ -154,7 +154,7 @@ export function ModeSelector() {
               "Real NSE prices via Yahoo Finance",
               "FIFO lot matching · realized P&L",
               "₹100,000 paper capital",
-              "Trades flow into Gemma analysis",
+              "Trades flow into AI model analysis",
             ]}
             cta="Start Paper Trading"
             onClick={() => pickMode("paper")}
@@ -303,9 +303,9 @@ export function ModeSelector() {
           textAlign: "center", fontSize: "11px", color: "#9B9890",
           letterSpacing: "0.03em", marginTop: "20px",
         }}>
-          <div>Edge-AI · 100% local inference via Gemma 4 + Ollama · Open source · MIT licensed</div>
+          <div>Edge-AI · 100% local inference via AI model + Ollama · Open source · MIT licensed</div>
           <div style={{ marginTop: "5px", letterSpacing: 0 }}>
-            Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+            AI model inference runs locally through Ollama.
           </div>
         </div>
       </div>

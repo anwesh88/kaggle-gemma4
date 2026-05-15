@@ -1,5 +1,5 @@
 /**
- * thinkingLogStore.ts — append-only Gemma reasoning log, persisted across
+ * thinkingLogStore.ts — append-only AI model reasoning log, persisted across
  * component remounts and unrelated state updates.
  *
  * Lightweight pub/sub (no Redux/Zustand) so components can subscribe with

@@ -89,7 +89,7 @@ export const api = {
     count: number;
   }>(`/quotes/lookup?symbols=${encodeURIComponent(symbols.join(","))}`),
 
-  // Multimodal Gemma vision — four-layer behavioral chart analysis.
+  // Multimodal AI model vision — four-layer behavioral chart analysis.
   analyzeChart: async (file: File) => {
     const fd = new FormData(); fd.append("file", file);
     const r = await fetch(`${BASE}/analyze-chart`, {

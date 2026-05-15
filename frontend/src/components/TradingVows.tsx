@@ -181,7 +181,7 @@ export function TradingVows() {
               <polyline points="20 6 9 17 4 12"/>
             </svg>
             <span style={{ fontSize: "12px", color: "#16A34A", fontWeight: "600" }}>
-              Vows saved — Gemma will check these on next analysis
+              Vows saved — AI model will check these on next analysis
             </span>
           </div>
         )}

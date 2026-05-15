@@ -147,7 +147,7 @@ export function Dashboard() {
       // to flash right after a successful login.
       ? kiteAuthenticated
       : true;
-  // Context hash — only re-execute Gemma when something *meaningful* changes
+  // Context hash — only re-execute the AI model when something meaningful changes
   // (mode flip, trade count delta, kite session id, watchlist size, margin
   // usage bucket). Tiny price ticks and unrelated UI rerenders are excluded.
   // useStreamingAnalysis debounces re-runs by 600ms inside.
@@ -156,10 +156,10 @@ export function Dashboard() {
     useStreamingAnalysis({
       enabled: analysisEnabled,
       contextHash,
-      // No polling. The contextHash effect re-runs Gemma *only* when the
+      // No polling. The contextHash effect re-runs the AI model only when the
       // trading context actually changes (new trade, mode flip, margin
       // jumps a bucket). Idle dashboards never burn 20s of CPU on the
-      // local Gemma loop just to re-confirm "Healthy Trading · 0".
+      // local AI model loop just to re-confirm "Healthy Trading · 0".
       // pollIntervalMs intentionally omitted.
     });
 
@@ -508,7 +508,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* ── Chart Analyzer (Gemma Vision) ─────────────────────────────── */}
+          {/* ── Chart Analyzer (AI model vision) ──────────────────────────── */}
           <ChartAnalyzer onInsight={setChartInsight} />
 
           {chartInsight && (
@@ -518,7 +518,7 @@ export function Dashboard() {
             }}>
               <p style={{ fontSize: "11px", fontWeight: "700", color: "#1E40AF",
                 textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
-                Gemma 4 Vision · Chart Insight
+                AI model vision · Chart Insight
               </p>
               <p style={{ fontSize: "13px", color: "#1D4ED8", lineHeight: "1.5" }}>
                 {chartInsight}
@@ -711,7 +711,7 @@ export function Dashboard() {
             );
           })()}
 
-          {/* ── Gemma Thinking Log (live token stream + clickable evidence) ── */}
+          {/* ── AI model Thinking Log (live token stream + clickable evidence) ── */}
           <ThinkingLog
             log={analysis?.thinking_log ?? null}
             inferenceTime={analysis?.inference_seconds ?? undefined}
@@ -822,7 +822,7 @@ export function Dashboard() {
             </p>
             <p style={{ fontSize: "10px", color: "#92400E", marginTop: "6px",
               lineHeight: "1.45", opacity: 0.72 }}>
-              Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+              AI model inference runs locally through Ollama.
             </p>
           </div>
         </div>

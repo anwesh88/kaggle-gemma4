@@ -4,7 +4,7 @@ import type { BehavioralAnalysis } from "@/types";
 interface Props {
   analysis: BehavioralAnalysis | null;
   loading: boolean;
-  model?: string;     // e.g. "gemma4:e4b" — from /health
+  model?: string;     // raw model id from /health
   /** When false, the analysis pipeline is intentionally idle (e.g. Paper
    *  mode with zero trades). Render an empty-state instead of the
    *  loading skeleton so the user knows nothing is being analyzed. */
@@ -15,13 +15,9 @@ interface Props {
   emptyAccent?: string;
 }
 
-// Format the model id for display: "gemma4:e4b" → "Gemma 4 · e4b"
-function formatModel(raw: string | undefined): string {
-  if (!raw) return "Gemma 4";
-  const m = raw.match(/^gemma[-:]?(\d+)[:\-]?(.+)?$/i);
-  if (!m) return raw;
-  const variant = (m[2] ?? "").trim();
-  return variant ? `Gemma ${m[1]} · ${variant}` : `Gemma ${m[1]}`;
+// Keep the user-facing label generic even when the backend exposes a raw id.
+function formatModel(_raw: string | undefined): string {
+  return "AI model";
 }
 
 const RISK = {
@@ -110,8 +106,8 @@ export function FinsightIntelligence({
         <span
           title={
             isRealInference
-              ? `Real Gemma 4 inference, CPU-local, ${inferS!.toFixed(2)}s`
-              : "Gemma inference unavailable or still pending"
+              ? `Real AI model inference, CPU-local, ${inferS!.toFixed(2)}s`
+              : "AI model inference unavailable or still pending"
           }
           style={{
             marginLeft: "auto", display: "flex", alignItems: "center", gap: "5px",
@@ -230,7 +226,7 @@ export function FinsightIntelligence({
     );
   }
 
-  if (analysis.detected_pattern === "Gemma unavailable" && analysis.inference_seconds === null) {
+  if (analysis.inference_seconds === null && analysis.detected_pattern.toLowerCase().includes("unavailable")) {
     return (
       <div style={{
         background: "#fff", borderRadius: "12px",
@@ -247,10 +243,10 @@ export function FinsightIntelligence({
               textTransform: "uppercase", letterSpacing: "0.06em",
               marginBottom: "6px",
             }}>
-              Gemma inference unavailable
+              AI model inference unavailable
             </div>
             <p style={{ fontSize: "12px", color: "#7C5E10", lineHeight: "1.6" }}>
-              No behavioral score or pattern is being shown because Gemma did not complete this run.
+              No behavioral score or pattern is being shown because the AI model did not complete this run.
               The thinking log preserves the trade context that was prepared for the model.
             </p>
           </div>
@@ -473,7 +469,7 @@ export function FinsightIntelligence({
           </p>
           <p style={{ fontSize: "9px", color: "#92400E", marginTop: "5px",
             lineHeight: "1.45", opacity: 0.7 }}>
-            Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+            AI model inference runs locally through Ollama.
           </p>
         </div>
 
