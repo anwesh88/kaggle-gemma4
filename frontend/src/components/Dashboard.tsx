@@ -163,7 +163,7 @@ export function Dashboard() {
       // pollIntervalMs intentionally omitted.
     });
 
-  // Server-reported model name (e.g. "gemma4:e4b") — drives the header badge.
+  // Server-reported model name is used by downstream intelligence panels.
   const [model, setModel]   = useState<string>("");
   const [demoMode, setDemo] = useState<boolean>(true);
   useEffect(() => {
@@ -397,18 +397,13 @@ export function Dashboard() {
             {theme.pillLabel}
           </button>
 
-          {[
-            model || "gemma-4",
-            "edge-ai",
-          ].map(badge => (
-            <span key={badge} style={{
-              fontSize: "10px", fontWeight: "600", color: "#6B6860",
-              background: "#F9F8F6", border: "1px solid #E8E5DF",
-              borderRadius: "99px", padding: "2px 8px",
-            }}>
-              {badge}
-            </span>
-          ))}
+          <span style={{
+            fontSize: "10px", fontWeight: "600", color: "#6B6860",
+            background: "#F9F8F6", border: "1px solid #E8E5DF",
+            borderRadius: "99px", padding: "2px 8px",
+          }}>
+            edge-ai
+          </span>
         </div>
 
         {/* Controls */}
