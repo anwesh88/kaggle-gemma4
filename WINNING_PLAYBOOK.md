@@ -39,7 +39,7 @@ Gemma use:
 
 Use `docs/deploy.md` as the source of truth.
 
-- GitHub: `https://github.com/an-wesh/kaggle-gemma4`
+- GitHub: `https://github.com/anwesh88/kaggle-gemma4`
 - Frontend: Vercel, root directory `frontend`
 - Backend: Railway, root directory `backend`
 - Kite secrets: Railway environment variables only

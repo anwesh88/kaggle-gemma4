@@ -65,7 +65,7 @@ during fine-tune). **Score MAE** and **latency** typically don't move much.
 ## Reproducibility
 
 - Dataset SHA-256: see `finetune/data/dataset_hash.txt` after `build_dataset.py` runs
-- Adapter weights: pushed to `finsight-os/gemma4-e2b-sebi-lora-v1` on HuggingFace Hub
+- Adapter weights: pushed to `finsight-os/finsight-guardian-sebi-lora-v1` on HuggingFace Hub
 - Code: `finetune/{build_dataset,train,evaluate}.py`, all under MIT
 - Compute: free Kaggle T4 GPU; ~110 minutes wall-clock total
 
@@ -97,4 +97,9 @@ during fine-tune). **Score MAE** and **latency** typically don't move much.
 - Add a separate test set drawn from real Reddit r/IndianStreetBets posts
   (anonymized)
 - Quantize the merged adapter to GGUF and ship as a downloadable Ollama
-  model: `ollama pull finsight-os/gemma4-e2b-sebi`
+  model: `ollama pull finsight-os/finsight-guardian-sebi`
+
+## Attribution
+
+Gemma is a trademark of Google LLC. Finsight OS is an independent project and
+is not affiliated with or endorsed by Google.

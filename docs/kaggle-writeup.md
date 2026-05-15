@@ -103,3 +103,4 @@ Gemma 4 made the technology accessible. Finsight OS makes the protection inevita
 - **Fine-tune pipeline**: `finetune/` — runnable on free Kaggle T4
 - **GPU deployment recipes**: `docs/gpu-setup.md`
 - **Live Kite setup guide**: `docs/kite-setup.md`
+- **Model attribution note**: `docs/model-attribution.md`; Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.

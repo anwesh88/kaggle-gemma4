@@ -99,6 +99,7 @@ Open [`docs/architecture.html`](docs/architecture.html) in any browser for the f
 |---|---|
 | [`docs/run-locally.md`](docs/run-locally.md) | End-to-end local setup (backend + frontend + Kite + troubleshooting) |
 | [`docs/judge-local-gemma.md`](docs/judge-local-gemma.md) | Copy-paste judge path to verify real Gemma 4 inference locally |
+| [`docs/model-attribution.md`](docs/model-attribution.md) | Gemma model variant naming, trademark attribution, and non-affiliation notes |
 | [`docs/kaggle-writeup.md`](docs/kaggle-writeup.md) | Kaggle submission writeup (1500 words) |
 | [`docs/architecture.html`](docs/architecture.html) | System architecture diagram (open in browser) |
 | [`docs/cover-image.html`](docs/cover-image.html) | 1280×720 submission cover image |
@@ -158,7 +159,9 @@ Network audit: run `pip install pip-audit` then `pip-audit` to verify dependency
 
 ## Attribution
 
-- **Gemma 4** by Google DeepMind
+- Gemma is a trademark of Google LLC.
+- Finsight OS is an independent project and is not affiliated with or endorsed by Google.
+- **Gemma 4** model family by Google DeepMind
 - **Ollama** by the Ollama team
 - **kiteconnect** by Zerodha Tech
 - **Yahoo Finance** via `yfinance` by Ran Aroussi

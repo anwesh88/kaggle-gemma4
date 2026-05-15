@@ -24,7 +24,7 @@ Usage
 Push to HuggingFace Hub once trained:
     huggingface-cli login
     python -c "from peft import PeftModel; \
-               PeftModel.from_pretrained(...).push_to_hub('finsight-os/gemma4-e2b-sebi-lora-v1')"
+               PeftModel.from_pretrained(...).push_to_hub('finsight-os/finsight-guardian-sebi-lora-v1')"
 """
 
 from __future__ import annotations
@@ -169,7 +169,7 @@ def main() -> None:
     print(f"\n[train] Done. Adapter at {out_dir}")
     print(f"[train] Push to Hub:  huggingface-cli login && \\")
     print(f"            python -c \"from peft import PeftModel; "
-          f"PeftModel.from_pretrained(...).push_to_hub('finsight-os/gemma4-e2b-sebi-lora-v1')\"")
+          f"PeftModel.from_pretrained(...).push_to_hub('finsight-os/finsight-guardian-sebi-lora-v1')\"")
 
 
 if __name__ == "__main__":

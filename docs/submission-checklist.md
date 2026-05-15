@@ -11,7 +11,7 @@ Single-page T-minus-24h walkthrough. Don't submit until every box is ticked.
 
 - [ ] **Writeup v2** at `docs/kaggle-writeup.md` reviewed cold-read for tone, typos, length (≤1500 words by `wc -w`)
 - [ ] **Three references** marked `🔗 NEEDED` in `docs/references.md` filled in with real URLs and quotes
-- [ ] **Fine-tune notebook** trained on Kaggle T4 → adapter pushed to HuggingFace Hub as `finsight-os/gemma4-e2b-sebi-lora-v1`
+- [ ] **Fine-tune notebook** trained on Kaggle T4 -> adapter pushed to HuggingFace Hub as `finsight-os/finsight-guardian-sebi-lora-v1`
 - [ ] **Benchmark numbers** populated into `docs/finetune-results.md` (real measured table, not placeholder)
 - [ ] **Face-cam delivery rehearsed** against `docs/talking-points.md` — 3 clean takes recorded against the recording-setup checklist
 

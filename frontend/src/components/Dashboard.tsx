@@ -825,6 +825,10 @@ export function Dashboard() {
               All behavioral analysis runs locally on your device via Ollama.
               Zero financial data sent to any server.
             </p>
+            <p style={{ fontSize: "10px", color: "#92400E", marginTop: "6px",
+              lineHeight: "1.45", opacity: 0.72 }}>
+              Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+            </p>
           </div>
         </div>
       </main>

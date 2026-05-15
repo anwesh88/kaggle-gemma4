@@ -216,6 +216,9 @@ message and the OS — we'll fix and credit you in the next release.
 Submission by Anwesh Mohanty for the Kaggle Gemma 4 Good Hackathon, May
 2026. Email: anweshmohanty69@gmail.com · GitHub: @anwesh88.
 
+Gemma is a trademark of Google LLC. Finsight OS is an independent project and
+is not affiliated with or endorsed by Google.
+
 If you're at SEBI, Zerodha, or any institution working on retail investor
 protection in India, see `docs/pilot-pitch.md` for a one-page proposal
 for a 6-month observational pilot in Andhra Pradesh and Odisha.

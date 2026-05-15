@@ -471,6 +471,10 @@ export function FinsightIntelligence({
             lineHeight: "1.5", opacity: 0.8 }}>
             All analysis runs locally · Zero data sent to any server
           </p>
+          <p style={{ fontSize: "9px", color: "#92400E", marginTop: "5px",
+            lineHeight: "1.45", opacity: 0.7 }}>
+            Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+          </p>
         </div>
 
       </div>

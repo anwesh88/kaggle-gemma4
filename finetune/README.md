@@ -1,8 +1,12 @@
-# Finsight OS · Gemma 4 E2B QLoRA Fine-Tune on SEBI Corpus
+# Finsight Guardian SEBI LoRA - adapter for Gemma 4 E2B
 
 A small, reproducible adapter that improves Gemma 4 E2B's accuracy on
 SEBI-grounded behavioral analysis for Indian retail F&O traders. Trained
 with QLoRA in ~2 hours on a single T4 GPU (free on Kaggle / Colab).
+
+Naming note: the external adapter uses the distinct model name
+`finsight-guardian-sebi-lora-v1`. Gemma is referenced only as the base model
+family in descriptions and attribution.
 
 ## Why this exists
 
@@ -21,7 +25,7 @@ output schema is followed more reliably.
 
 After training:
 - A ~50 MB `adapter_model.safetensors` LoRA adapter
-- Pushed to HuggingFace Hub as `finsight-os/gemma4-e2b-sebi-lora-v1`
+- Pushed to HuggingFace Hub as `finsight-os/finsight-guardian-sebi-lora-v1`
 - Loadable in two ways:
   - `peft.PeftModel.from_pretrained(...)` — for HuggingFace transformers
   - `ollama create -f Modelfile-sebi` — for the Ollama runtime (after
@@ -109,3 +113,8 @@ TrainingArguments(
   knowledge beyond what's in the 5 seed docs.
 - Ollama runtime support for LoRA adapters is via merge-and-quantize, not
   hot-swap. See `docs/finetune-results.md` for the merge pipeline.
+
+## Attribution
+
+Gemma is a trademark of Google LLC. Finsight OS is an independent project and
+is not affiliated with or endorsed by Google.

@@ -303,7 +303,10 @@ export function ModeSelector() {
           textAlign: "center", fontSize: "11px", color: "#9B9890",
           letterSpacing: "0.03em", marginTop: "20px",
         }}>
-          Edge-AI · 100% local inference via Gemma 4 + Ollama · Open source · MIT licensed
+          <div>Edge-AI · 100% local inference via Gemma 4 + Ollama · Open source · MIT licensed</div>
+          <div style={{ marginTop: "5px", letterSpacing: 0 }}>
+            Gemma is a trademark of Google LLC. Finsight OS is independent and not endorsed by Google.
+          </div>
         </div>
       </div>
     </div>
