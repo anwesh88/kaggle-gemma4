@@ -69,7 +69,7 @@ Open the dashboard and you'll see seven things working at once:
 
 ![Finsight OS architecture](docs/architecture.html)
 
-Three layers running on the user's device, with a single read-only call to Yahoo Finance for public NSE quotes. Trust boundary marked in green: **zero financial data leaves the device**.
+Behavioral intelligence stays on the user's device. Public Yahoo Finance quotes are inbound-only, and optional Live Kite mode adds user-authorized broker traffic without exporting Finsight's behavioral scores, nudges, or longitudinal profile.
 
 | Layer | Components |
 |---|---|
@@ -77,7 +77,7 @@ Three layers running on the user's device, with a single read-only call to Yahoo
 | **API** | FastAPI + Uvicorn, 12 endpoints, mode-aware dispatcher |
 | **Engines** | Gemma 4 via Ollama, ChromaDB SEBI RAG, paper-trading SQLite, behavioral DNA SQLite, multimodal vision, Live Kite Connect adapter |
 
-Open [`docs/architecture.html`](docs/architecture.html) in any browser for the full diagram.
+Open [`docs/architecture.html`](docs/architecture.html) for the system view and [`docs/data-pipeline.html`](docs/data-pipeline.html) for the end-to-end data flow.
 
 ---
 
@@ -102,6 +102,7 @@ Open [`docs/architecture.html`](docs/architecture.html) in any browser for the f
 | [`docs/model-attribution.md`](docs/model-attribution.md) | Gemma model variant naming, trademark attribution, and non-affiliation notes |
 | [`docs/kaggle-writeup.md`](docs/kaggle-writeup.md) | Kaggle submission writeup (1500 words) |
 | [`docs/architecture.html`](docs/architecture.html) | System architecture diagram (open in browser) |
+| [`docs/data-pipeline.html`](docs/data-pipeline.html) | End-to-end data pipeline diagram |
 | [`docs/cover-image.html`](docs/cover-image.html) | 1280×720 submission cover image |
 | [`docs/kite-setup.md`](docs/kite-setup.md) | 5-minute Live Kite Connect walkthrough |
 | [`docs/deploy.md`](docs/deploy.md) | GitHub + Vercel + Railway deployment guide |
@@ -140,14 +141,14 @@ The full inference pipeline — prompt construction, Ollama call, JSON parsing, 
 
 ## Privacy commitment
 
-The "edge AI · zero data leaves the device" claim is enforced by the architecture, not by policy:
+The "no behavioral data leaves the device" claim is enforced by the architecture, not by policy:
 
 - Gemma 4 runs at `localhost:11434` via Ollama
 - All trades persist to SQLite at `backend/data/paper_trading.db` on local disk
 - Behavioral DNA persists to `backend/data/behavioral_dna.db` on local disk
 - ChromaDB RAG vectors live at `backend/data/chroma_db/`
-- The **only** outbound call is `query2.finance.yahoo.com` for public NSE quotes (no user-tied data sent)
-- Live Kite Connect mode adds calls to `api.kite.trade` — required to talk to your broker; Finsight reads/writes only the API surface you'd use yourself
+- Yahoo Finance provides inbound public NSE data only; no behavioral profile is sent there
+- Live Kite Connect mode adds user-authorized calls to `api.kite.trade` for broker functions, but Finsight's behavioral scores, nudges, and Behavioral DNA remain local
 
 Network audit: run `pip install pip-audit` then `pip-audit` to verify dependency provenance.
 

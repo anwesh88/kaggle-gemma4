@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Finsight OS · Data Pipeline</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg:        #F5F4F0;
+    --card:      #ffffff;
+    --border:    #E8E5DF;
+    --text:      #1A1814;
+    --muted:     #6B6860;
+    --soft:      #9B9890;
+    --orange:    #F97316;
+    --green:     #16A34A;
+    --blue:      #2563EB;
+    --red:       #DC2626;
+    --violet:    #7C3AED;
+    --orange-bg: #FFF7ED;
+    --orange-br: #FED7AA;
+    --green-bg:  #F0FDF4;
+    --green-br:  #BBF7D0;
+    --blue-bg:   #EFF6FF;
+    --blue-br:   #BFDBFE;
+    --red-bg:    #FEF2F2;
+    --red-br:    #FECACA;
+    --violet-bg: #F5F3FF;
+    --violet-br: #DDD6FE;
+    --gray-bg:   #F9F8F6;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 16px;
+    min-height: 100vh;
+  }
+  .frame {
+    max-width: 1240px;
+    margin: 0 auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
+  }
+  .frame-header {
+    padding: 22px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .logo {
+    width: 38px; height: 38px; border-radius: 10px;
+    background: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .title { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+  .subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .badge-row { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+  .badge {
+    font-size: 10px; font-weight: 600; color: var(--muted);
+    background: var(--gray-bg); border: 1px solid var(--border);
+    border-radius: 99px; padding: 3px 9px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .diagram { padding: 28px; }
+  svg { width: 100%; height: auto; display: block; }
+
+  .legend {
+    margin-top: 8px; padding: 14px 28px 24px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11px; color: var(--muted);
+  }
+  .legend-swatch {
+    width: 14px; height: 14px; border-radius: 4px; border: 1px solid;
+    flex-shrink: 0;
+  }
+
+  .notes {
+    margin: 0 28px 28px;
+    padding: 16px 18px;
+    background: var(--orange-bg);
+    border: 1px solid var(--orange-br);
+    border-radius: 10px;
+  }
+  .notes h3 {
+    margin: 0 0 8px; font-size: 11px; font-weight: 700;
+    color: #C2410C; text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  .notes ol {
+    margin: 0; padding-left: 18px;
+    columns: 2; column-gap: 24px;
+    font-size: 12px; line-height: 1.65; color: #92400E;
+  }
+  .notes ol li::marker { color: var(--orange); font-weight: 700; }
+  .notes ol li b { color: #7C2D12; }
+
+  .footer {
+    padding: 14px 28px 22px;
+    font-size: 11px; color: var(--soft);
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+  <header class="frame-header">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+        stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+    </div>
+    <div>
+      <div class="title">Finsight OS · Data Pipeline</div>
+      <div class="subtitle">Raw signals → prompt assembly → Gemma inference → response assembly → intervention + memory</div>
+    </div>
+    <div class="badge-row">
+      <span class="badge">No behavioral data leaves device</span>
+      <span class="badge">Structured AI contract</span>
+      <span class="badge">Feedback loop</span>
+    </div>
+  </header>
+
+  <div class="diagram">
+    <svg viewBox="0 0 1200 714" xmlns="http://www.w3.org/2000/svg" font-family="DM Sans, -apple-system, sans-serif">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#6B6860"/>
+        </marker>
+        <marker id="arr-blue" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2563EB"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#16A34A"/>
+        </marker>
+        <marker id="arr-orange" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#F97316"/>
+        </marker>
+        <marker id="arr-red" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#DC2626"/>
+        </marker>
+      </defs>
+
+      <!-- Local boundary -->
+      <rect x="18" y="54" width="962" height="640" rx="16"
+            fill="none" stroke="#16A34A" stroke-width="2" stroke-dasharray="6 4" opacity="0.58"/>
+      <text x="34" y="42" font-size="11" font-weight="700" fill="#16A34A"
+            letter-spacing="0.06em">
+        LOCAL DATA PLANE · BEHAVIORAL FEATURES, SCORES, AND MEMORY STAY ON-DEVICE
+      </text>
+
+      <!-- Lane backgrounds -->
+      <rect x="34" y="92"  width="930" height="214" rx="12" fill="#FFF7ED" stroke="#FED7AA"/>
+      <rect x="34" y="328" width="930" height="126" rx="12" fill="#F0FDF4" stroke="#BBF7D0"/>
+      <rect x="34" y="476" width="930" height="96"  rx="12" fill="#EFF6FF" stroke="#BFDBFE"/>
+      <rect x="34" y="594" width="930" height="96"  rx="12" fill="#FEF2F2" stroke="#FECACA"/>
+
+      <!-- Lane labels -->
+      <text x="52" y="114" font-size="10" font-weight="700" fill="#C2410C" letter-spacing="0.07em">A · BEHAVIORAL DECISION PIPELINE</text>
+      <text x="52" y="350" font-size="10" font-weight="700" fill="#15803D" letter-spacing="0.07em">B · CHART VISION PIPELINE</text>
+      <text x="52" y="498" font-size="10" font-weight="700" fill="#1E40AF" letter-spacing="0.07em">C · PUBLIC MARKET DATA PATH</text>
+      <text x="52" y="616" font-size="10" font-weight="700" fill="#991B1B" letter-spacing="0.07em">D · OPTIONAL LIVE BROKER PATH</text>
+
+      <!-- Lane A -->
+      <g>
+        <rect x="52"  y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="68"  y="151" font-size="11" font-weight="700" fill="#1A1814">1 · User signals</text>
+        <text x="68"  y="171" font-size="10" fill="#6B6860">intent · vows</text>
+        <text x="68"  y="187" font-size="10" fill="#6B6860">language</text>
+      </g>
+
+      <g>
+        <rect x="202" y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="218" y="151" font-size="11" font-weight="700" fill="#1A1814">2 · TradingContext</text>
+        <text x="218" y="171" font-size="10" fill="#6B6860">trades · margin</text>
+        <text x="218" y="187" font-size="10" fill="#6B6860">mode-normalized</text>
+      </g>
+
+      <g>
+        <rect x="352" y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="368" y="151" font-size="11" font-weight="700" fill="#1A1814">3 · Prompt assembly</text>
+        <text x="368" y="171" font-size="10" fill="#6B6860">vows · history</text>
+        <text x="368" y="187" font-size="10" fill="#6B6860">live-risk fields</text>
+      </g>
+
+      <g>
+        <rect x="502" y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="518" y="151" font-size="11" font-weight="700" fill="#1A1814">4 · Gemma 4</text>
+        <text x="518" y="171" font-size="10" fill="#6B6860">strict JSON</text>
+        <text x="518" y="187" font-size="10" fill="#6B6860">score · nudge</text>
+      </g>
+
+      <g>
+        <rect x="652" y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="668" y="151" font-size="11" font-weight="700" fill="#1A1814">5 · Response</text>
+        <text x="668" y="171" font-size="10" fill="#6B6860">audit trace</text>
+        <text x="668" y="187" font-size="10" fill="#6B6860">attach disclosure</text>
+      </g>
+
+      <g>
+        <rect x="802" y="128" width="136" height="74" rx="10" fill="#fff" stroke="#FED7AA"/>
+        <text x="818" y="151" font-size="11" font-weight="700" fill="#1A1814">6 · Act + remember</text>
+        <text x="818" y="171" font-size="10" fill="#6B6860">card · speed bump</text>
+        <text x="818" y="187" font-size="10" fill="#6B6860">save completed run</text>
+      </g>
+
+      <g stroke="#F97316" stroke-width="1.9" fill="none">
+        <path d="M188 165 H200" marker-end="url(#arr-orange)"/>
+        <path d="M338 165 H350" marker-end="url(#arr-orange)"/>
+        <path d="M488 165 H500" marker-end="url(#arr-orange)"/>
+        <path d="M638 165 H650" marker-end="url(#arr-orange)"/>
+        <path d="M788 165 H800" marker-end="url(#arr-orange)"/>
+      </g>
+
+      <!-- Local support under the AI path -->
+      <g>
+        <rect x="352" y="226" width="136" height="48" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="368" y="246" font-size="10" font-weight="700" fill="#15803D">Behavioral DNA</text>
+        <text x="368" y="262" font-size="9" fill="#6B6860">future-session memory</text>
+      </g>
+
+      <g>
+        <rect x="652" y="226" width="136" height="48" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="668" y="246" font-size="10" font-weight="700" fill="#15803D">SEBI RAG</text>
+        <text x="668" y="262" font-size="9" fill="#6B6860">post-inference disclosure</text>
+      </g>
+
+      <g stroke="#16A34A" stroke-width="1.8" fill="none">
+        <path d="M420 226 V204" marker-end="url(#arr-green)"/>
+        <path d="M720 226 V204" marker-end="url(#arr-green)"/>
+        <path d="M870 202 V288 H420 V276" marker-end="url(#arr-green)"/>
+      </g>
+      <text x="494" y="294" font-size="9" fill="#15803D" font-style="italic">completed runs become future memory</text>
+
+      <!-- Lane B -->
+      <g>
+        <rect x="52"  y="366" width="150" height="70" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="68"  y="389" font-size="11" font-weight="700" fill="#1A1814">1 · Chart screenshot</text>
+        <text x="68"  y="409" font-size="10" fill="#6B6860">user-provided image</text>
+      </g>
+
+      <g>
+        <rect x="220" y="366" width="150" height="70" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="236" y="389" font-size="11" font-weight="700" fill="#1A1814">2 · Trader context</text>
+        <text x="236" y="409" font-size="10" fill="#6B6860">symbol · DNA · trades</text>
+      </g>
+
+      <g>
+        <rect x="388" y="366" width="150" height="70" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="404" y="389" font-size="11" font-weight="700" fill="#1A1814">3 · Gemma 4 vision</text>
+        <text x="404" y="409" font-size="10" fill="#6B6860">image + prompt</text>
+      </g>
+
+      <g>
+        <rect x="556" y="366" width="166" height="70" rx="10" fill="#fff" stroke="#BBF7D0"/>
+        <text x="572" y="389" font-size="11" font-weight="700" fill="#1A1814">4 · Structured JSON</text>
+        <text x="572" y="409" font-size="10" fill="#6B6860">structure · risk · warning</text>
+      </g>
+
+      <g stroke="#16A34A" stroke-width="1.8" fill="none">
+        <path d="M202 401 H218" marker-end="url(#arr-green)"/>
+        <path d="M370 401 H386" marker-end="url(#arr-green)"/>
+        <path d="M538 401 H554" marker-end="url(#arr-green)"/>
+      </g>
+
+      <!-- Lane C -->
+      <g>
+        <rect x="520" y="512" width="132" height="44" rx="10" fill="#fff" stroke="#BFDBFE"/>
+        <text x="536" y="531" font-size="11" font-weight="700" fill="#1A1814">Watchlist UI</text>
+        <text x="536" y="547" font-size="10" fill="#6B6860">public quotes</text>
+      </g>
+
+      <g>
+        <rect x="670" y="512" width="132" height="44" rx="10" fill="#fff" stroke="#BFDBFE"/>
+        <text x="686" y="531" font-size="11" font-weight="700" fill="#1A1814">Market cache</text>
+        <text x="686" y="547" font-size="10" fill="#6B6860">30 s snapshot</text>
+      </g>
+
+      <g stroke="#2563EB" stroke-width="1.8" fill="none">
+        <path d="M670 534 H654" marker-end="url(#arr-blue)"/>
+      </g>
+
+      <!-- Lane D -->
+      <g>
+        <rect x="520" y="630" width="132" height="44" rx="10" fill="#fff" stroke="#FECACA"/>
+        <text x="536" y="649" font-size="11" font-weight="700" fill="#1A1814">Execution path</text>
+        <text x="536" y="665" font-size="10" fill="#6B6860">paper or Kite order</text>
+      </g>
+
+      <g>
+        <rect x="670" y="630" width="132" height="44" rx="10" fill="#fff" stroke="#FECACA"/>
+        <text x="686" y="649" font-size="11" font-weight="700" fill="#1A1814">Broker adapter</text>
+        <text x="686" y="665" font-size="10" fill="#6B6860">Live Kite mode</text>
+      </g>
+
+      <g stroke="#DC2626" stroke-width="1.8" fill="none">
+        <path d="M652 652 H668" marker-end="url(#arr-red)"/>
+      </g>
+
+      <!-- External services -->
+      <text x="1044" y="84" font-size="10" font-weight="700" fill="#991B1B" letter-spacing="0.07em">EXTERNAL</text>
+
+      <g>
+        <rect x="1020" y="496" width="146" height="74" rx="10" fill="#fff" stroke="#BFDBFE"/>
+        <text x="1036" y="520" font-size="10" font-weight="700" fill="#1E40AF">Yahoo Finance</text>
+        <text x="1036" y="538" font-size="9" fill="#6B6860">public prices only</text>
+        <text x="1036" y="554" font-size="9" fill="#6B6860">inbound</text>
+      </g>
+
+      <g>
+        <rect x="1020" y="614" width="146" height="74" rx="10" fill="#fff" stroke="#FECACA"/>
+        <text x="1036" y="638" font-size="10" font-weight="700" fill="#991B1B">Zerodha Kite</text>
+        <text x="1036" y="656" font-size="9" fill="#6B6860">optional broker</text>
+        <text x="1036" y="672" font-size="9" fill="#6B6860">authorized orders</text>
+      </g>
+
+      <g stroke="#2563EB" stroke-width="1.8" fill="none">
+        <path d="M1020 533 H804" marker-end="url(#arr-blue)" stroke-dasharray="5 4"/>
+      </g>
+      <g stroke="#DC2626" stroke-width="1.8" fill="none">
+        <path d="M802 652 H1018" marker-end="url(#arr-red)" stroke-dasharray="5 4"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><span class="legend-swatch" style="background:#FFF7ED;border-color:#FED7AA"></span>Behavioral decision pipeline</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#F0FDF4;border-color:#BBF7D0"></span>Chart vision + local memory</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#EFF6FF;border-color:#BFDBFE"></span>Public market data path</div>
+    <div class="legend-item"><span class="legend-swatch" style="background:#FEF2F2;border-color:#FECACA"></span>Optional live broker path</div>
+    <div class="legend-item"><span class="legend-swatch" style="border:2px dashed #16A34A;background:transparent"></span>Local data plane</div>
+  </div>
+
+  <div class="notes">
+    <h3>Pipeline truths worth preserving</h3>
+    <ol>
+      <li><b>Yahoo is inbound only</b> — it contributes public prices, not user behavior.</li>
+      <li><b>Kite is optional</b> — only Live Kite mode opens the broker path.</li>
+      <li><b>Behavioral context is local</b> — vows, scores, DNA, and the SEBI corpus stay on-device.</li>
+      <li><b>Gemma sees an explicit prompt</b> — TradingContext, vows, history, and live-risk fields.</li>
+      <li><b>Gemma returns strict JSON</b> — score, pattern, localized nudge, and vow violations.</li>
+      <li><b>SEBI RAG is attached after inference</b> — local disclosure, not hidden prompt input.</li>
+      <li><b>Completed runs become future memory</b> — persistence improves the next analysis.</li>
+      <li><b>The final product output is action</b> — insight culminates in a pre-order intervention.</li>
+    </ol>
+  </div>
+
+  <footer class="footer">
+    <span>Finsight OS · Data pipeline · Submission May 2026</span>
+    <span>Architecture companion · optimized for judges, reviewers, and implementation handoff</span>
+  </footer>
+</div>
+</body>
+</html>

@@ -1,4 +1,4 @@
-# ── Python ─────────────────────────────────────────────────────────────────
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -9,28 +9,28 @@ __pycache__/
 .mypy_cache/
 .ruff_cache/
 
-# ── Virtual environments (recreate via `python -m venv` + requirements.txt) ─
+# Virtual environments
 venv/
 .venv/
 env/
 backend/venv/
 backend/.venv/
-# Stray root-level venvs (backend uses backend/venv/ which is versioned)
 kaggle/venv/
 kaggle/.venv/
 
-# ── Node / Next.js ─────────────────────────────────────────────────────────
+# Node / Next.js
 node_modules/
 .next/
 out/
 dist/
 build/
+diagram-site/.vercel/
 *.tsbuildinfo
 next-env.d.ts
 playwright-report/
 test-results/
 
-# ── Local databases (the demo seeder regenerates these on first run) ───────
+# Local databases
 backend/data/*.db
 backend/data/chroma_db/
 backend/data/sebi_circulars/*.txt
@@ -38,7 +38,7 @@ backend/data/sebi_circulars/*.txt
 *.sqlite3
 *.db-journal
 
-# ── Secrets ─ NEVER commit these ───────────────────────────────────────────
+# Secrets
 backend/.env
 .env
 .env.local
@@ -51,24 +51,26 @@ backend/data/kite_secret.key
 secrets/
 *.pkl
 
-# ── Fine-tune outputs (push adapter to HuggingFace Hub instead) ────────────
+# Fine-tune outputs
 finetune/adapters/
 finetune/data/sebi_train.jsonl
 finetune/data/sebi_test.jsonl
 finetune/data/dataset_hash.txt
 finetune/wandb/
 
-# ── Editor / OS ────────────────────────────────────────────────────────────
+# Editor / OS
 .vscode/
 .idea/
 .claude/
+.codex-backup
+.chrome-temp/
 *.swp
 *.swo
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ── Build artifacts that shouldn't be in source control ────────────────────
+# Build artifacts
 *.log
 logs/
 coverage/
@@ -78,13 +80,21 @@ backend/tests/.tmp/
 backend/.pytest-tmp/
 backend/pytest-cache-files-*/
 
-# ── Video / media (kept out of repo, hosted on YouTube + media gallery) ────
+# Video / media
 assets/raw/
 assets/exports/
 *.mp4
 *.mov
 *.wav
 *.mp3
-# Allow the cover image and architecture diagram (HTML, not heavy assets)
 !docs/cover-image.html
 !docs/architecture.html
+
+# Playbook / strategy docs
+WINNING_PLAYBOOK.md
+talking-points.md
+video-script.md
+recording-setup.md
+pilot-pitch.md
+submission-checklist.md
+implementation_guide.md

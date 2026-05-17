@@ -1,28 +1,29 @@
 # Finsight OS
 
-## A privacy-first behavioral guardian for India's 9.6 million retail F&O traders, built on Gemma 4
+## A privacy-first behavioral guardian for stock market participants, built on Gemma 4
 
 > **Track:** Digital Equity & Inclusivity (primary) · Safety & Trust (secondary)
 > **Live demo:** https://kaggle-gemma4.vercel.app · **Code:** https://github.com/anwesh88/kaggle-gemma4
+> **Diagrams:** [Architecture](https://finsight-os-diagrams.vercel.app/#architecture) · [Data pipeline](https://finsight-os-diagrams.vercel.app/#data-pipeline)
 > **Video:** https://youtu.be/[VIDEO_ID]
 
 ---
 
 ## The problem
 
-SEBI's F&O Study for FY2024-25 quantifies a public health crisis disguised as a market: **9.6 million** Indian retail traders lost a combined **₹1,05,603 crore (~$12.6 billion)** on equity derivatives in a single year. **91%** of individual traders incurred losses. The average net loss per trader was **₹1.1 lakh**. The people on the wrong side of these numbers are not Mumbai high-net-worth investors — **75% earn under ₹5 lakh per year and 72% live in B30 cities** (small towns and rural India).
+India's retail market has become radically easier to enter; it has not become equally safe to navigate. In the cash market, SEBI found that **7 out of 10** individual intraday traders lose money. In equity derivatives, the failure mode becomes impossible to ignore: SEBI's FY2024-25 study found **9.6 million** Indian retail F&O traders lost a combined **₹1,05,603 crore (~$12.6 billion)** in a single year, with **91%** of individual traders incurring losses and an average net loss of **₹1.1 lakh**. F&O is the sharpest proof point, not the product boundary.
 
-The trading apps these users rely on were optimized to maximize trade volume, not to protect users from themselves. After two consecutive losses, an app's only response is a faster *Place Order* button. Behavioral finance research has documented this loop for decades: revenge trading, FOMO, over-leveraging, addiction-like patterns where the user keeps placing orders despite consecutive losses [Kahneman & Tversky 1979, *Prospect Theory*; Barber & Odean 2008, *Just How Much Do Individual Investors Lose by Trading?*]. There is no friction in the user experience to interrupt the spiral.
+The apps serving self-directed market participants were optimized for throughput, not reflection. After two consecutive losses, the interface usually offers the same frictionless *Place Order* button. Behavioral finance research has documented the loop for decades: revenge trading, FOMO, over-leveraging, and repeated action under loss pressure [Kahneman & Tversky 1979, *Prospect Theory*; Barber & Odean 2008, *Just How Much Do Individual Investors Lose by Trading?*]. There is almost no product-layer intervention at the exact moment when a costly impulse becomes an executed order.
 
-Existing solutions don't fit either. Cloud-based behavioral coaching is privacy-hostile — sending complete trading history to a server is a non-starter for B30 users with patchy connectivity and well-founded distrust. Generic chatbots don't understand Indian market structure or SEBI regulations. And anything requiring a 16 GB GPU is unusable on the ThinkBook-class laptops most retail traders actually own.
+Existing solutions miss the shape of the problem. Cloud-based behavioral coaching is privacy-hostile because it requires exporting complete trading history. Generic chatbots are detached from the order flow, weak on Indian market structure, and easy to ignore when the next trade is one click away. And solutions that assume a 16 GB GPU exclude the ordinary laptops many first-generation market participants actually use.
 
-Gemma 4 changes the math. A quantized E2B variant runs on a four-year-old CPU laptop, in private, with no network calls. It speaks Hindi, Telugu, Tamil. It produces structured JSON when asked. It can be domain-adapted via QLoRA on consumer hardware. The technology to put a behavioral guardian in every retail trader's pocket exists today — what was missing was someone willing to build for the people who need it most.
+Gemma 4 changes the math. A quantized E2B variant runs on a four-year-old CPU laptop, in private, with no network calls. It speaks Hindi, Telugu, Tamil. It produces structured JSON when asked. It can be domain-adapted via QLoRA on consumer hardware. The technology to place a behavioral safeguard beside every self-directed market participant exists today — what was missing was a product willing to intervene at the moment of action, without taking custody of the user's data or agency.
 
 ## The Mindful Speed Bump
 
-Finsight OS sits between the user and the *Place Order* button. Every order goes through a local Gemma 4 analysis: what just happened in this session, which trading vows the user pre-committed to, whether the pattern matches Revenge Trading or FOMO or Over-Leveraging, and how distressed the user appears to be financially. If the behavioral score crosses 600/1000, the trade does not execute on the first click. Instead, the app shows the detected pattern, the user's violated vow, and asks them to type a 15-word commitment phrase that names the specific behavior — *and* waits a dynamically-computed cooldown (6-18 seconds, scaled by score and pattern) before the Confirm button activates. Only after both gates clear does the order go through.
+Finsight OS maintains a local behavioral view of the current session: recent trades, pre-committed trading vows, detected patterns such as Revenge Trading, FOMO, or Over-Leveraging, and the amount of risk pressure the session is showing. In the current demo trade flow, when the latest analysis is marked high risk, Finsight places a *Mindful Speed Bump* in front of the order: it shows the detected pattern and any violated vows, asks the user to retype a model-generated commitment phrase, and enforces a dynamically computed cooldown of 6-18 seconds before confirmation unlocks.
 
-This isn't a paywall or a nag screen. It's a cognitive interrupt — long enough for the System 2 brain to come online, short enough to respect the user's autonomy [Kahneman 2011, *Thinking, Fast and Slow*]. Trades still happen. The user remains in control. But the impulse path now has a speed bump in it.
+This isn't a paywall or a nag screen. It's a cognitive interrupt — long enough for the System 2 brain to come online, short enough to respect the user's autonomy [Kahneman 2011, *Thinking, Fast and Slow*]. The user remains in control. But the impulse path now has a speed bump in it.
 
 ## Three deployment modes ship today
 
@@ -32,23 +33,23 @@ The first screen is a mode picker. **Demo Mode** (zero setup, pre-loaded high-ri
 
 Finsight OS is a Next.js 14 frontend, a FastAPI backend, and seven local engines that run on the user's device. The architecture diagram in the media gallery shows the full picture; three things deserve explicit mention.
 
-**Trust boundary.** Every component except a Yahoo Finance read for public NSE quotes runs locally. Trading data, behavioral analysis, RAG retrieval, behavioral DNA — all of it lives on the user's machine, written to SQLite and ChromaDB on local disk. Zero financial data leaves the device. The privacy story isn't a value prop, it's an architectural property the code enforces.
+**Trust boundary.** Every component except a Yahoo Finance read for public NSE quotes runs locally by default. Behavioral scores, nudges, RAG retrieval, and Behavioral DNA stay on the user's machine, written to SQLite and ChromaDB on local disk. Optional Live Kite mode opens only the user-authorized broker path needed for account reads and orders; the behavioral intelligence itself stays local. The privacy story isn't a value prop, it's an architectural property the code enforces.
 
 **Real, not demo.** Watchlist quotes come from `yfinance`. Every BUY and SELL persists to a SQLite paper-trading engine with FIFO lot matching that realizes P&L on the closing leg. The trades the AI analyzes are the trades the user actually placed. A representative high-risk session is seeded once on first run so judges see the Speed Bump fire immediately, but every subsequent trade flows into the next analysis. Live Kite Mode replaces this with real broker calls behind the same UI.
 
 **Edge AI, not cloud AI.** Gemma 4 runs locally via Ollama at `localhost:11434`. No Anthropic key, no OpenAI key, no Google Cloud project. The behavioral guardian works on a flight, on a train, in a B30 town with intermittent 4G.
 
-## Seven Gemma 4 features in use
+## Seven Gemma 4 capabilities in use
 
-**Thinking Mode.** The analysis prompt drives a 7-step reasoning chain — vow check → pattern → score rubric → nudge → language → stress → SEBI grounding. The reasoning chain streams to the UI token-by-token via Server-Sent Events; each step is clickable to drill into its evidence (the violated vow text, the score breakdown, the SEBI source citation).
+**Auditable analysis trace.** Gemma returns structured behavioral output from a prompt that asks it to reason over vows, patterns, score rubric, and localized nudges. The UI streams a six-step evidence trace assembled from the real context plus Gemma's completed JSON response, so every intervention remains inspectable without claiming access to hidden model reasoning.
 
 **Multimodal Vision.** The Chart Analyzer accepts a screenshot of the user's chart workspace. Gemma 4's vision modality reads it and returns a one-sentence behavioral warning. Demonstrates the model seeing the same screen the trader sees.
 
 **Multi-language Generation.** Every high-risk nudge is generated in English plus the user's preferred Indian language — Hindi, Telugu, or Tamil — appearing in both scripts in the Speed Bump modal. This is the Digital Equity hook: the same edge AI speaks the languages of the users it's protecting.
 
-**Structured JSON Output.** Strict schema (`behavioral_score`, `risk_level`, `detected_pattern`, `nudge_message`, `vows_violated`, `crisis_score`). A brace-balanced extractor parses real-world model output without the brittleness of greedy regex.
+**Structured JSON Output.** Strict schema (`behavioral_score`, `risk_level`, `detected_pattern`, `nudge_message`, `vows_violated`). A brace-balanced extractor parses real-world model output without the brittleness of greedy regex.
 
-**RAG-grounded Responses.** A ChromaDB local index over SEBI circulars (FY2024-25 study, MIRSD circular 2024/001, Investor Charter 2021, Peak Margin 2021, Investor Protection Guidelines) is queried at every analysis. Disclosures cite real SEBI text.
+**RAG-grounded Disclosures.** A ChromaDB local index over SEBI circulars (FY2024-25 study, MIRSD circular 2024/001, Investor Charter 2021, Peak Margin 2021, Investor Protection Guidelines) is queried at every analysis. The app attaches locally retrieved SEBI disclosures to completed model responses.
 
 **Longitudinal Context.** A SQLite Behavioral DNA database persists every session's score and pattern. Past sessions are summarized into the prompt so Gemma sees not just today's trades but the user's history. Persistent revenge trading scores higher than first-time revenge trading.
 
@@ -56,17 +57,17 @@ Finsight OS is a Next.js 14 frontend, a FastAPI backend, and seven local engines
 
 ## Engineering challenges and solutions
 
-**CPU-only inference budget.** The default development hardware is a four-year-old ThinkBook with an i7-1255U and 16 GB RAM. Real Gemma 4 E4B inference at our prompt complexity can exceed 90 seconds on this hardware, so the submitted app defaults to `gemma4:e2b`, compresses the prompt, widens context only when needed, and pre-warms the model on FastAPI startup. The full inference pipeline — prompt construction, Ollama call, JSON parsing, RAG enrichment, behavioral DNA write, streaming SSE delivery — is real and runs on every request. If Gemma times out or returns invalid JSON, the UI shows an explicit "Gemma unavailable" state instead of a fake behavioral score, pattern, or nudge. **Every Ollama option is overridable via environment variable** (`OLLAMA_NUM_GPU=99`, `OLLAMA_NUM_CTX=2048`, `OLLAMA_KEEP_ALIVE=30m`); on any GPU instance — including a free Kaggle T4 — real Gemma reasoning is visible immediately. See `docs/gpu-setup.md` for one-command deployment recipes for Kaggle, RunPod, Modal, and Colab.
+**CPU-only inference budget.** The default development hardware is a four-year-old ThinkBook with an i7-1255U and 16 GB RAM. Real Gemma 4 E4B inference at our prompt complexity exceeds 90 seconds on this hardware. We compress the prompt ~30%, slim the JSON schema, pre-warm the model on FastAPI startup (saves the 25-40s weight-loading cold start), and return an explicit Gemma-unavailable state when the timeout is exceeded. The full inference pipeline - prompt construction, Ollama call, JSON parsing, RAG enrichment, behavioral DNA write, streaming SSE delivery - is real and runs on every request; no behavioral insight is fabricated when the model cannot complete. **Every Ollama option is overridable via environment variable** (`OLLAMA_NUM_GPU=99`, `OLLAMA_NUM_CTX=2048`, `OLLAMA_KEEP_ALIVE=30m`); on any GPU instance — including a free Kaggle T4 — real Gemma reasoning is visible immediately. See `docs/gpu-setup.md` for one-command deployment recipes for Kaggle, RunPod, Modal, and Colab.
 
 **Live Kite Connect OAuth.** Live mode follows Zerodha's redirect-based auth: backend exposes `/kite/login-url`, user is redirected to `kite.zerodha.com`, returns to `/kite/callback` with a single-use `request_token`, the backend exchanges it for a daily-expiry `access_token` stored in an HTTP-only `SameSite=Lax` cookie. Rate-limited at the 3 req/s ceiling per Kite TOS via an asyncio semaphore plus 333 ms inter-call spacing. The same `/portfolio`, `/trade-history`, `/confirm-trade` endpoints serve all three modes via an `X-Finsight-Mode` header dispatcher.
 
-**Streaming Server-Sent Events.** The Thinking Log streams Gemma's tokens to the UI as they're produced — green "LIVE" pill, blinking cursor, auto-scroll. On timeout, a synthesized 7-step trace streams at simulated rate so the UX is consistent regardless of which path fires.
+**Streaming Server-Sent Events.** The Thinking Log streams Gemma's tokens to the UI as they're produced — green "LIVE" pill, blinking cursor, auto-scroll. On timeout, the stream resolves to an explicit Gemma-unavailable audit log instead of a synthesized behavioral trace.
 
 **FIFO lot matching.** Paper trades realize P&L correctly across partial fills. The engine tracks `quantity_remaining` per row and matches SELLs against open BUYs oldest-first, splitting partial closes without splitting rows. P&L is recorded on the closing leg only to avoid double-counting.
 
 ## Impact and the path forward
 
-The technical depth above matters only if it ships to the people SEBI is trying to protect. 9.6 million retail traders. 75% earn under ₹5 lakh. 72% in B30 cities. They run laptops like the one this was built on, with patchy internet, in three or four languages. The combination of edge AI, regulatory grounding, and a UX that respects the user's intelligence makes this a tool that can run in a Jharkhand cybercafé and still meaningfully reduce the loss rate.
+The technical depth above matters only if it reaches the people who need better guardrails at the moment of action: active stock market participants, from first-time equity buyers to high-frequency retail traders. SEBI's cash-market and derivatives studies show that harmful behavior is not confined to one instrument class; F&O simply reveals the costliest edge of a broader behavioral problem. The combination of edge AI, regulatory grounding, and a UX that respects the user's intelligence makes this a tool that can run on an ordinary laptop, in multiple Indian languages, and still interrupt the next bad decision before it compounds.
 
 A concrete five-phase distribution plan:
 
@@ -74,9 +75,9 @@ A concrete five-phase distribution plan:
 2. **Phase 2 (Q4 2026)**: browser extension build that runs alongside Zerodha Kite Web and Groww, embedding the Speed Bump in the broker's own interface.
 3. **Phase 3 (Q1 2027)**: Android app (ONNX Runtime for Gemma) for the 90% of B30 users on smartphones, launching in Hindi, Telugu, Tamil, Bengali, and Marathi.
 4. **Phase 4 (Q2 2027)**: broker SDK — embeddable library brokers can integrate into their own apps. Pitch to Zerodha (already SEBI-aligned on investor protection messaging), Groww, Upstox.
-5. **Phase 5 (Q3 2027)**: SEBI partnership pilot in Andhra Pradesh and Odisha (high B30 density, growing F&O participation). Official endorsement opens distribution to all 9.6M users.
+5. **Phase 5 (Q3 2027)**: SEBI partnership pilot in Andhra Pradesh and Odisha, focused on behaviorally risky retail activity across cash and derivatives. Official endorsement opens a path to broker-led distribution at national scale.
 
-Gemma 4 made the technology accessible. Finsight OS makes the protection inevitable. Open source. MIT licensed. Free. Forever. Because behavioral guardianship shouldn't be a premium feature — it should be the default.
+Gemma 4 made the technology accessible. Finsight OS makes the protection practical. Open source. MIT licensed. Free. Forever. Because behavioral guardrails shouldn't be a premium feature — they should be part of the default market experience.
 
 ---
 
@@ -93,7 +94,8 @@ Gemma 4 made the technology accessible. Finsight OS makes the protection inevita
 
 ### Submission attachments
 
-- **Architecture diagram**: `docs/architecture.html` (also in Media Gallery as PNG)
+- **Architecture diagram**: [interactive viewer](https://finsight-os-diagrams.vercel.app/#architecture) · source `docs/architecture.html`
+- **Data pipeline diagram**: [interactive viewer](https://finsight-os-diagrams.vercel.app/#data-pipeline) · source `docs/data-pipeline.html`
 - **Cover image**: `docs/cover-image.html` rendered to `cover.png` in Media Gallery
 - **Live demo**: deployed at the URL above (Vercel frontend + Railway backend). For real Gemma reasoning on hosted infrastructure, Railway must reach an Ollama/GPU runtime. If the paid GPU runtime is offline for budget reasons, judges can run the exact local Ollama verification path documented in `docs/judge-local-gemma.md`.
 - **Public code repo**: GitHub link above
