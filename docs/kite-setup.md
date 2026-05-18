@@ -178,20 +178,3 @@ automatically.
 | Backend says `Restored session for None` | profile JSON sidecar got corrupted | wipe `data/kite_*.json` and re-OAuth once |
 | `401 Kite access_token expired` | Daily 6 AM IST expiry | Click logout → login again |
 | Login redirects to a 404 | Backend not running on `:8000` | Start backend before clicking login |
-
-## What this proves to a judge
-
-The Live Kite Connect path demonstrates that Finsight OS isn't just a
-sandbox — the Mindful Speed Bump can sit between any of Zerodha's 16 million
-existing users and the Place Order button, with no broker partnership
-required, no monthly subscription, and full SEBI compliance.
-
-Source code:
-- `backend/kite_client.py` — SDK wrapper, rate limiter, session map
-- `backend/main.py` — `/kite/login-url`, `/kite/callback`, `/kite/logout`,
-  `/kite/status`, plus mode-aware dispatch on `/portfolio`,
-  `/trade-history`, `/confirm-trade`
-- `frontend/src/components/ModeSelector.tsx` — first-screen picker
-- `frontend/src/contexts/ModeContext.tsx` — mode persistence + provider
-- `frontend/src/lib/mode.ts` — shared types and the `X-Finsight-Mode` header
-- `frontend/src/lib/api.ts` — credentialed fetch with mode header threaded
