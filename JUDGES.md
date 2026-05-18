@@ -18,7 +18,7 @@ seconds.
 
 What's running behind the URL: Next.js on Vercel and FastAPI on Railway.
 Real NSE prices come from Yahoo and paper trades persist through SQLite. If
-the Railway backend can reach an Ollama/Gemma runtime, the Thinking Log shows
+the Railway backend can reach an Ollama/Gemma runtime, the Audit Trace shows
 real Gemma inference. If the paid GPU/Ollama runtime is offline, the UI shows
 an explicit "Gemma unavailable" state rather than fake insight. To verify real
 Gemma execution without relying on paid cloud GPU uptime, use
@@ -162,7 +162,7 @@ Finsight Intelligence insights when Gemma returns parseable JSON.
 
 On a GPU instance (Path A live demo, or Path B with `OLLAMA_NUM_GPU=99`,
 or any judge running on hardware better than i7-1255U), real Gemma
-reasoning is visible immediately. See `docs/gpu-setup.md` for the env
+inference is visible immediately. See `docs/gpu-setup.md` for the env
 vars that switch CPU → GPU.
 
 This is documented in the writeup's *Engineering challenges* section —
@@ -177,7 +177,7 @@ If you want to verify a specific writeup claim, here's where the code is:
 | Writeup claim | File |
 |---|---|
 | Mindful Speed Bump | `frontend/src/components/TradePanel.tsx` (modal) + `computeCooldown()` |
-| Streaming Thinking Log | `backend/ai_engine.py:analyze_behavior_stream` + `frontend/src/hooks/useStreamingAnalysis.ts` |
+| Streaming Audit Trace | `backend/ai_engine.py:analyze_behavior_stream` + `frontend/src/hooks/useStreamingAnalysis.ts` |
 | FIFO lot matching | `backend/paper_trading.py:record_trade` |
 | Yahoo Finance prices | `backend/market_data.py` |
 | ChromaDB SEBI RAG | `backend/rag_engine.py` |

@@ -147,9 +147,11 @@ session** + **Modal for the live demo URL** = total budget under $5.
 
 ## Privacy preserved when using cloud GPU
 
-The "edge AI · zero data leaves the device" claim only holds when the user
-runs Finsight on their own hardware. When deployed on Modal/RunPod for the
-live demo, behavioral data is processed on the cloud GPU instance.
+The strict on-device privacy story only applies to the local deployment:
+behavioral features, scores, nudges, and memory remain on the user's hardware,
+while public quote lookups and optional broker calls follow their documented
+external paths. When deployed on Modal/RunPod for the hosted demo, behavioral
+analysis is processed on the cloud GPU instance instead.
 
 The writeup should clearly state that the **shipped product is the local
 edge-AI version**; the hosted demo is a convenience for judges to evaluate

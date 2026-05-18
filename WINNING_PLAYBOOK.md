@@ -12,7 +12,7 @@ Gemma use:
 - The context includes recent trades, open positions, realized/open P&L,
   margin use, vows, preferred language, and behavioral history.
 - `backend/ai_engine.py` sends that context to Gemma 4 through Ollama.
-- The Thinking Log is built from the real context plus Gemma's structured JSON
+- The Audit Trace is built from the real context plus Gemma's structured JSON
   response.
 - If Gemma fails, times out, or returns invalid JSON, the UI shows an explicit
   unavailable state. It does not fabricate mock insights.
@@ -27,7 +27,7 @@ Gemma use:
 
 ## Gemma 4 Features Demonstrated
 
-1. Thinking-mode style reasoning exposed through a step-by-step audit log.
+1. Structured behavioral analysis exposed through a step-by-step audit log.
 2. Structured JSON output parsed with a brace-balanced extractor.
 3. Multilingual nudges in English plus Hindi, Telugu, or Tamil.
 4. Multimodal chart screenshot analysis through the Gemma/Ollama vision path.
@@ -46,7 +46,7 @@ Use `docs/deploy.md` as the source of truth.
 - Public frontend env: `NEXT_PUBLIC_API_URL=<Railway backend URL>`
 
 Railway CPU is acceptable for the API/paper/Kite surface, but real Gemma
-reasoning requires an Ollama runtime reachable from the backend. For the most
+inference requires an Ollama runtime reachable from the backend. For the most
 reliable judging proof, run the local path with Ollama:
 
 ```powershell

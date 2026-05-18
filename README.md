@@ -1,6 +1,6 @@
 # Finsight OS
 
-> A privacy-first behavioral guardian for India's 9.6 million retail F&O traders, built on Gemma 4.
+> A privacy-first behavioral guardian for self-directed stock market participants, built on Gemma 4.
 
 [![Made for Kaggle Gemma 4 Good Hackathon](https://img.shields.io/badge/Kaggle-Gemma%204%20Good%20Hackathon-orange)](https://www.kaggle.com/competitions/gemma-4-good-hackathon)
 [![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](LICENSE)
@@ -9,9 +9,9 @@
 
 SEBI's FY2024-25 study found 9.6 million Indian retail traders lost a combined **₹1,05,603 crore** on equity derivatives in a single year. **91%** of them lost money. The trading apps they use were optimized to maximize trade volume, not to protect users from themselves.
 
-**Finsight OS** sits between the user and the *Place Order* button. A local Gemma 4 model analyzes every trade attempt for emotional patterns — Revenge Trading, FOMO, Over-Leveraging, Addiction Loop — and triggers a *Mindful Speed Bump*: a 6-18 second cognitive interrupt that requires the trader to type a 15-word commitment phrase before the order goes through. Trades still happen. The user remains in control. But the impulse path now has a speed bump in it.
+**Finsight OS** maintains a local behavioral view of the current session — recent trades, trading vows, and patterns such as Revenge Trading, FOMO, and Over-Leveraging — and can place a *Mindful Speed Bump* in front of a high-risk order: a 6-18 second cognitive interrupt that requires the trader to type a 15-word commitment phrase before confirmation unlocks. Trades still happen. The user remains in control. But the impulse path now has a speed bump in it.
 
-Everything runs locally. No cloud AI. No financial data leaves the device. Speaks English, Hindi, Telugu, Tamil. Runs on a four-year-old laptop.
+Behavioral intelligence runs locally by default. Public quote lookups are inbound-only, and optional Live Kite mode uses user-authorized broker calls without exporting Finsight's behavioral scores, nudges, or longitudinal profile. Speaks English, Hindi, Telugu, Tamil. Runs on a four-year-old laptop.
 
 ---
 
@@ -60,7 +60,7 @@ Open the dashboard and you'll see seven things working at once:
 3. **Margin Usage** — derived from open paper positions, color-coded green/amber/red based on usage
 4. **Trading Vows** — user's pre-committed identity contract, editable, fed into Gemma's prompt every analysis
 5. **Finsight Intelligence** — behavioral score 0-1000, risk level, pattern, commitment phrase in EN + local language, vow violations, SEBI disclosure
-6. **Streaming Thinking Log** — Gemma's 7-step reasoning streams to the UI token-by-token via SSE, each step clickable to drill into evidence
+6. **Streaming Audit Trace** — a 7-step evidence trail streams to the UI via SSE, each step clickable to drill into evidence
 7. **Mindful Speed Bump** — modal triggered on high-risk BUY/SELL with countdown ring, exact-match phrase typing, dynamic cooldown by pattern
 
 ---
@@ -83,7 +83,7 @@ Open [`docs/architecture.html`](docs/architecture.html) for the system view and 
 
 ## Seven Gemma 4 features in use
 
-1. **Thinking Mode** — `<|think|>` reasoning chain before structured output (streamed live to the UI)
+1. **Auditable analysis trace** — a 7-step evidence trail assembled from real context plus Gemma's structured output
 2. **Multimodal Vision** — chart screenshot → behavioral warning
 3. **Multi-language Generation** — nudges in EN / HI / TE / TA
 4. **Structured JSON Output** — strict schema, brace-balanced extraction
