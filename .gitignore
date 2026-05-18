@@ -98,3 +98,8 @@ recording-setup.md
 pilot-pitch.md
 submission-checklist.md
 implementation_guide.md
+
+# Local-only submission docs
+docs/kaggle-writeup.md
+docs/judge-local-gemma.md
+docs/run-locally.md
