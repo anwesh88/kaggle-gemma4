@@ -305,11 +305,11 @@ def get_session_trades_for_ai(since_minutes: int = 240, mode: str = "demo") -> l
         rows = conn.execute(
             """
             SELECT * FROM paper_trades
-             WHERE timestamp >= ?
-               AND (
+             WHERE (
                     realized_pnl IS NOT NULL
-                    OR quantity_remaining > 0
+                    AND timestamp >= ?
                )
+                OR quantity_remaining > 0
              ORDER BY timestamp ASC
             """,
             (cutoff.isoformat(),),

@@ -79,6 +79,7 @@ htmlcov/
 backend/tests/.tmp/
 backend/.pytest-tmp/
 backend/pytest-cache-files-*/
+backend/benchmarks/*.json
 
 # Video / media
 assets/raw/
@@ -112,3 +113,5 @@ docs/references.md
 docs/submission-checklist.md
 docs/video-script.md
 docs/talking-points.md
+JUDGE_LOCAL.md
+RUN_LOCALLY.md

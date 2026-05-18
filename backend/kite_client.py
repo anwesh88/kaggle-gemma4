@@ -616,10 +616,17 @@ def _to_iso(value: Any) -> str:
     if isinstance(value, datetime):
         ts = value
     elif value:
+        raw = str(value).strip()
         try:
-            ts = datetime.fromisoformat(str(value))
+            # Kite usually gives us datetime objects, but some SDK / serialized
+            # paths surface strings instead. `Z` is common in JSON payloads and
+            # older Python builds do not always accept it directly.
+            ts = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         except Exception:
-            return str(value)
+            # Never leak a broker-specific raw string to the frontend: a single
+            # malformed value becomes "Invalid Date" in the recent-trades card.
+            logger.warning("[kite] Unparseable trade timestamp %r; using current UTC time", value)
+            ts = datetime.now(timezone.utc)
     else:
         ts = datetime.now(timezone.utc)
     if ts.tzinfo is None:
@@ -661,6 +668,7 @@ def kite_holdings_to_finsight(raw_holdings: list[dict[str, Any]]) -> list[dict[s
         avg = _to_float(row.get("average_price", 0))
         ltp = _to_float(row.get("last_price", 0))
         pnl = _to_float(row.get("pnl", (ltp - avg) * qty))
+        exposure_price = ltp if ltp > 0 else avg
         out.append({
             "symbol": row.get("tradingsymbol", ""),
             "exchange": row.get("exchange", "NSE"),
@@ -669,6 +677,7 @@ def kite_holdings_to_finsight(raw_holdings: list[dict[str, Any]]) -> list[dict[s
             "ltp": ltp,
             "pnl": pnl,
             "day_change_pct": _to_float(row.get("day_change_percentage", 0)),
+            "exposure": abs(qty) * exposure_price,
         })
     return out
 
@@ -860,7 +869,11 @@ def build_account_snapshot(
         realized_pnl = 0.0
         realized_pnl_source = "unknown"
 
-    exposures = [_to_float(pos.get("exposure")) for pos in positions if _to_float(pos.get("exposure")) > 0]
+    exposures = [
+        _to_float(item.get("exposure"))
+        for item in [*positions, *holdings]
+        if _to_float(item.get("exposure")) > 0
+    ]
     total_exposure = round(sum(exposures), 2)
     concentration = (max(exposures) / total_exposure) if total_exposure > 0 else 0.0
 

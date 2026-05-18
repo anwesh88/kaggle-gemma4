@@ -17,7 +17,7 @@ interface Props {
 
 // Keep the user-facing label generic even when the backend exposes a raw id.
 function formatModel(_raw: string | undefined): string {
-  return "AI model";
+  return "Fin AI";
 }
 
 const RISK = {
@@ -51,7 +51,7 @@ export function FinsightIntelligence({
   analysis, loading, model,
   enabled = true,
   emptyTitle  = "Awaiting your first trade",
-  emptyBody   = "The AI starts analyzing once you place a trade. Your dashboard will populate from there.",
+  emptyBody   = "Fin AI starts analyzing once you place a trade. Your dashboard will populate from there.",
   emptyAccent = "#2563EB",
 }: Props) {
   const r     = analysis ? RISK[analysis.risk_level] : RISK.low;
@@ -106,8 +106,8 @@ export function FinsightIntelligence({
         <span
           title={
             isRealInference
-              ? `Real AI model inference, CPU-local, ${inferS!.toFixed(2)}s`
-              : "AI model inference unavailable or still pending"
+              ? `Real Fin AI inference, built on Gemma 4, CPU-local, ${inferS!.toFixed(2)}s`
+              : "Fin AI inference unavailable or still pending"
           }
           style={{
             marginLeft: "auto", display: "flex", alignItems: "center", gap: "5px",
@@ -243,10 +243,10 @@ export function FinsightIntelligence({
               textTransform: "uppercase", letterSpacing: "0.06em",
               marginBottom: "6px",
             }}>
-              AI model inference unavailable
+              Fin AI inference unavailable
             </div>
             <p style={{ fontSize: "12px", color: "#7C5E10", lineHeight: "1.6" }}>
-              No behavioral score or pattern is being shown because the AI model did not complete this run.
+              No behavioral score or pattern is being shown because the Fin AI did not complete this run.
               The thinking log preserves the trade context that was prepared for the model.
             </p>
           </div>
@@ -469,7 +469,7 @@ export function FinsightIntelligence({
           </p>
           <p style={{ fontSize: "9px", color: "#92400E", marginTop: "5px",
             lineHeight: "1.45", opacity: 0.7 }}>
-            AI model inference runs locally through Ollama.
+            Fin AI is built on Gemma 4 and runs locally through Ollama.
           </p>
         </div>
 

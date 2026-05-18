@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useStreamingAnalysis } from "@/hooks/useStreamingAnalysis";
 import { useMode } from "@/contexts/ModeContext";
 import { themeFor } from "@/lib/modeTheme";
@@ -16,7 +16,7 @@ import { KiteAccountPanel } from "./KiteAccountPanel";
 import { StockSearch } from "./StockSearch";
 import { api } from "@/lib/api";
 import type {
-  Language, MarketSnapshot, MarketState,
+  BehavioralAnalysis, Language, MarketSnapshot, MarketState,
   PaperTrade, SessionPnL, OpenPosition, KiteAccountSnapshot, KiteStatus,
 } from "@/types";
 
@@ -88,11 +88,26 @@ function fmtPrice(n: number) {
   return n.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-function fmtTime(iso: string): string {
-  // Render a UTC ISO timestamp as IST HH:mm (NSE-local).
-  return new Date(iso).toLocaleTimeString("en-IN", {
+function fmtTime(value: string | null | undefined): string {
+  // Render a UTC ISO timestamp as IST HH:mm (NSE-local), but never let a
+  // malformed runtime payload leak "Invalid Date" into the trading surface.
+  if (!value) return "—";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleTimeString("en-IN", {
     hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kolkata",
   });
+}
+
+function normalizeTrade(
+  trade: PaperTrade & { trade_timestamp?: string | null; order_timestamp?: string | null },
+): PaperTrade {
+  // Keep the UI compatible with older / live broker payloads if one ever
+  // arrives before backend normalization has run.
+  return {
+    ...trade,
+    timestamp: trade.timestamp || trade.trade_timestamp || trade.order_timestamp || "",
+  };
 }
 
 export function Dashboard() {
@@ -115,6 +130,7 @@ export function Dashboard() {
   const [marginUsedPct, setMarginUsedPct] = useState(0);
   const [marginUsed, setMarginUsed]     = useState(0);
   const [marginAvailable, setMarginAvailable] = useState(100_000);
+  const [analysisRevision, setAnalysisRevision] = useState(0);
   // Hydrate from sessionStorage if the /kite/callback page just primed an
   // authenticated KiteStatus — avoids a "Reconnect" flash right after login.
   const [kiteStatus, setKiteStatus]     = useState<KiteStatus | null>(() => {
@@ -131,6 +147,10 @@ export function Dashboard() {
   const [kiteSnapshot, setKiteSnapshot] = useState<KiteAccountSnapshot | null>(null);
   const [kiteLoading, setKiteLoading]   = useState(false);
   const [kiteError, setKiteError]       = useState<string | null>(null);
+  // Keep the last completed result visible while a fresh run is in-flight.
+  // This matters especially when the user changes nudge language: the copy
+  // should refresh, but the whole intelligence panel must never blink out.
+  const [lastStableAnalysis, setLastStableAnalysis] = useState<BehavioralAnalysis | null>(null);
 
   const kiteAuthenticated = mode !== "kite" ? true : !!kiteStatus?.authenticated;
   // Three distinct kite-mode states for empty-state copy:
@@ -147,21 +167,53 @@ export function Dashboard() {
       // to flash right after a successful login.
       ? kiteAuthenticated
       : true;
-  // Context hash — only re-execute the AI model when something meaningful changes
-  // (mode flip, trade count delta, kite session id, watchlist size, margin
-  // usage bucket). Tiny price ticks and unrelated UI rerenders are excluded.
-  // useStreamingAnalysis debounces re-runs by 600ms inside.
-  const contextHash = `${mode}|${kiteAuthenticated ? "auth" : "noauth"}|${tradesCount}|${positions.length}|${Math.round(marginUsedPct / 10)}`;
-  const { analysis, loading, refresh, streamingText, streaming, status: streamStatus } =
+  // Context fingerprint — every economically meaningful mutation changes this:
+  // a new execution, an open lot being closed, a position resize, or a live
+  // holding changing shape. This is deliberately richer than the old
+  // count-only hash, which could leave the analysis stale after real trades.
+  const contextHash = useMemo(() => {
+    const tradeSig = trades.map(t => [
+      t.order_id,
+      t.timestamp,
+      t.quantity,
+      t.quantity_remaining,
+      t.realized_pnl ?? "open",
+    ].join(":")).join("|");
+    const positionSig = positions.map(p => [
+      p.symbol,
+      p.side,
+      p.quantity,
+      p.avg_price,
+    ].join(":")).join("|");
+    const holdingSig = (kiteSnapshot?.holdings ?? []).map(h => [
+      h.symbol,
+      h.quantity,
+      h.avg_price,
+    ].join(":")).join("|");
+    return [
+      mode,
+      kiteAuthenticated ? "auth" : "noauth",
+      analysisRevision,
+      tradeSig,
+      positionSig,
+      holdingSig,
+      Math.round(marginUsedPct * 10) / 10,
+    ].join("§");
+  }, [mode, kiteAuthenticated, analysisRevision, trades, positions, kiteSnapshot?.holdings, marginUsedPct]);
+  const { analysis, preview, loading, refresh, streamingText, streaming, status: streamStatus } =
     useStreamingAnalysis({
       enabled: analysisEnabled,
       contextHash,
-      // No polling. The contextHash effect re-runs the AI model only when the
+      // No polling. The contextHash effect re-runs the Fin AI only when the
       // trading context actually changes (new trade, mode flip, margin
       // jumps a bucket). Idle dashboards never burn 20s of CPU on the
-      // local AI model loop just to re-confirm "Healthy Trading · 0".
+      // local Fin AI loop just to re-confirm "Healthy Trading · 0".
       // pollIntervalMs intentionally omitted.
     });
+  useEffect(() => {
+    if (analysis) setLastStableAnalysis(analysis);
+  }, [analysis]);
+  const visibleAnalysis = preview ?? analysis ?? lastStableAnalysis;
 
   // Server-reported model name is used by downstream intelligence panels.
   const [model, setModel]   = useState<string>("");
@@ -235,7 +287,7 @@ export function Dashboard() {
         );
         setKiteError(null);
         setKiteStatus(prev => ({ ...(prev ?? { configured: true, authenticated: true }), authenticated: true }));
-        setTrades(snapshot.trades);
+        setTrades(snapshot.trades.map(normalizeTrade));
         setTradesCount(snapshot.summary.total_trades);
         setSessionPnl(snapshot.summary);
         setPositions(snapshot.positions);
@@ -274,7 +326,7 @@ export function Dashboard() {
         api.getTradeHistory(20),
         api.getPortfolio(),
       ]);
-      setTrades(hist.trades);
+      setTrades(hist.trades.map(normalizeTrade));
       setTradesCount(hist.trades.length);
       setSessionPnl(hist.session_pnl);
       setPositions(pf.positions);
@@ -303,6 +355,16 @@ export function Dashboard() {
     await Promise.all([refresh(), fetchSession()]);
     setTimeout(() => setSpinning(false), 700);
   }, [refresh, fetchSession]);
+
+  const handleAccountMutation = useCallback(async () => {
+    try {
+      await fetchSession();
+    } finally {
+      // The order endpoint has already succeeded at this point, so force a
+      // fresh analysis even if the read-back request has a transient wobble.
+      setAnalysisRevision(v => v + 1);
+    }
+  }, [fetchSession]);
 
 
   // ── Shared card style ──────────────────────────────────────────────────
@@ -334,7 +396,7 @@ export function Dashboard() {
     <div style={{ minHeight: "100vh", background: "#F5F4F0" }}>
 
       {/* Overlays */}
-      <NudgeEngine analysis={analysis} />
+      <NudgeEngine analysis={analysis ?? lastStableAnalysis} />
 
       {/* ── Sticky header ───────────────────────────────────────────────── */}
       <header style={{
@@ -416,7 +478,7 @@ export function Dashboard() {
 
           <button
             onClick={handleRefresh}
-            title="Re-run AI analysis"
+            title="Re-run Fin AI analysis"
             style={{
               width: "34px", height: "34px", borderRadius: "8px",
               border: "1px solid #E8E5DF", background: "#F9F8F6",
@@ -508,7 +570,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* ── Chart Analyzer (AI model vision) ──────────────────────────── */}
+          {/* ── Chart Analyzer (Fin AI vision) ──────────────────────────── */}
           <ChartAnalyzer onInsight={setChartInsight} />
 
           {chartInsight && (
@@ -518,7 +580,7 @@ export function Dashboard() {
             }}>
               <p style={{ fontSize: "11px", fontWeight: "700", color: "#1E40AF",
                 textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "4px" }}>
-                AI model vision · Chart Insight
+                Fin AI vision · built on Gemma 4
               </p>
               <p style={{ fontSize: "13px", color: "#1D4ED8", lineHeight: "1.5" }}>
                 {chartInsight}
@@ -564,11 +626,12 @@ export function Dashboard() {
                 error={kiteError}
               />
 
-              {/* Stock search + real-order placement (Kite mode only). The
-                  watchlist persists to localStorage; orders fire after the
-                  Mindful Speed Bump inside the order modal. */}
-              <StockSearch onAfterOrder={fetchSession} />
             </>
+          )}
+
+          {/* Shared search/watch/place surface for paper and live trading. */}
+          {(mode === "paper" || mode === "kite") && (
+            <StockSearch analysis={analysis ?? lastStableAnalysis} onAfterOrder={handleAccountMutation} />
           )}
 
           {/* ── Recent Trades (real, from /trade-history) ─────────────────── */}
@@ -606,7 +669,7 @@ export function Dashboard() {
                     </div>
                     <div style={{ color: "#9B9890", fontSize: "12px", lineHeight: "1.5" }}>
                       {mode === "paper"
-                        ? "Place your first BUY in the panel below. The AI will start watching for emotional patterns once you have 2+ trades."
+                        ? "Place your first BUY in the panel below. Fin AI will start watching for emotional patterns once you have 2+ trades."
                         : mode === "kite" && kiteError
                           ? "Your live session needs to be refreshed before trades and analysis can load."
                           : "Place an order to see it here."}
@@ -711,7 +774,7 @@ export function Dashboard() {
             );
           })()}
 
-          {/* ── AI model Audit Trace (live token stream + clickable evidence) ── */}
+          {/* ── Fin AI Audit Trace (live token stream + clickable evidence) ── */}
           <ThinkingLog
             log={analysis?.thinking_log ?? null}
             inferenceTime={analysis?.inference_seconds ?? undefined}
@@ -725,7 +788,7 @@ export function Dashboard() {
         {/* ── RIGHT SIDEBAR ────────────────────────────────────────────────── */}
         <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
           <FinsightIntelligence
-            analysis={analysis} loading={loading} model={model}
+            analysis={visibleAnalysis} loading={loading} model={model}
             enabled={analysisEnabled}
             emptyTitle={
               mode === "paper"
@@ -738,12 +801,12 @@ export function Dashboard() {
             }
             emptyBody={
               mode === "paper"
-                ? "The AI starts analyzing once you place a trade. Behavioral score, pattern detection, and the Mindful Speed Bump activate from your second trade onward."
+                ? "Fin AI starts analyzing once you place a trade. Behavioral score, pattern detection, and the Mindful Speed Bump activate from your second trade onward."
                 : mode === "kite"
                   ? (kiteProbing
                       ? "Verifying your live session — your dashboard will populate as soon as the broker check returns."
                       : "Your Zerodha session is no longer active. Use the Reconnect Kite button above to log in again.")
-                  : "The AI hasn't analyzed this session yet."
+                  : "Fin AI hasn't analyzed this session yet."
             }
             emptyAccent={theme.accent}
           />
@@ -802,7 +865,9 @@ export function Dashboard() {
             );
           })()}
 
-          <TradePanel analysis={analysis} onTradeExecuted={fetchSession} />
+          {mode === "demo" && (
+            <TradePanel analysis={analysis} onTradeExecuted={handleAccountMutation} />
+          )}
 
           <TradingVows />
 
@@ -822,7 +887,7 @@ export function Dashboard() {
             </p>
             <p style={{ fontSize: "10px", color: "#92400E", marginTop: "6px",
               lineHeight: "1.45", opacity: 0.72 }}>
-              AI model inference runs locally through Ollama.
+              Fin AI is built on Gemma 4 and runs locally through Ollama.
             </p>
           </div>
         </div>

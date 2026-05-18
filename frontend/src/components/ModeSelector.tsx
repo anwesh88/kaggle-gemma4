@@ -102,7 +102,7 @@ export function ModeSelector() {
               Finsight OS
             </div>
             <div style={{ fontSize: "12px", color: "#9B9890", letterSpacing: "0.04em" }}>
-              BEHAVIORAL GUARDIAN · BUILT ON AI MODEL
+              BEHAVIORAL GUARDIAN · FIN AI BUILT ON GEMMA 4
             </div>
           </div>
         </div>
@@ -136,7 +136,7 @@ export function ModeSelector() {
             features={[
               "5 closed losing trades + 2 open positions",
               "Speed Bump fires on first analysis",
-              "All AI model features active",
+              "All Fin AI features active",
               "Zero broker credentials needed",
             ]}
             cta="Enter Demo"
@@ -154,7 +154,7 @@ export function ModeSelector() {
               "Real NSE prices via Yahoo Finance",
               "FIFO lot matching · realized P&L",
               "₹100,000 paper capital",
-              "Trades flow into AI model analysis",
+              "Trades flow into Fin AI analysis",
             ]}
             cta="Start Paper Trading"
             onClick={() => pickMode("paper")}
@@ -303,9 +303,9 @@ export function ModeSelector() {
           textAlign: "center", fontSize: "11px", color: "#9B9890",
           letterSpacing: "0.03em", marginTop: "20px",
         }}>
-          <div>Edge-AI · 100% local inference via AI model + Ollama · Open source · MIT licensed</div>
+          <div>Edge-AI · 100% local inference via Fin AI, built on Gemma 4 + Ollama · Open source · CC BY 4.0 licensed</div>
           <div style={{ marginTop: "5px", letterSpacing: 0 }}>
-            AI model inference runs locally through Ollama.
+            Fin AI is built on Gemma 4 and runs locally through Ollama.
           </div>
         </div>
       </div>

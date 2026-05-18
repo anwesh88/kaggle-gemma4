@@ -17,7 +17,7 @@ interface UseStreamingOptions {
    *  on the polling interval. Used in Paper mode with zero trades. */
   enabled?: boolean;
   /** Context hash — when this string/number changes, the hook re-runs the
-   *  analysis. Used to gate AI model re-execution to meaningful state changes
+   *  analysis. Used to gate Fin AI re-execution to meaningful state changes
    *  (new trades, watchlist edits, mode flip) rather than every UI re-render. */
   contextHash?: string | number | null;
   /** Debounce window (ms) before re-running analysis after the hash changes.
@@ -28,10 +28,12 @@ interface UseStreamingOptions {
 type StreamEvent =
   | { type: "status"; message: string }
   | { type: "token";  text: string }
+  | { type: "preview"; analysis: BehavioralAnalysis }
   | { type: "result"; analysis: BehavioralAnalysis };
 
 interface State {
   analysis: BehavioralAnalysis | null;
+  preview: BehavioralAnalysis | null;
   streamingText: string;
   status: string;          // most recent status message
   streaming: boolean;      // true while a stream is active
@@ -40,6 +42,7 @@ interface State {
 
 const INITIAL: State = {
   analysis: null,
+  preview: null,
   streamingText: "",
   status: "",
   streaming: false,
@@ -78,10 +81,10 @@ export function useStreamingAnalysis(
     const ac = new AbortController();
     abortRef.current = ac;
 
-    setS(prev => ({ ...prev, streamingText: "", status: "", streaming: true, loading: true }));
+    setS(prev => ({ ...prev, preview: null, streamingText: "", status: "", streaming: true, loading: true }));
 
     // Persistent thinking log: append a run header so the user can scroll
-    // back through every analysis the AI model has ever produced this session.
+    // back through every analysis the Fin AI has ever produced this session.
     const mode = currentMode() as "demo" | "paper" | "kite";
     const runId = thinkingLog.startRun(mode, `hash=${String(contextHash ?? "init")}`);
 
@@ -133,10 +136,17 @@ export function useStreamingAnalysis(
           } else if (ev.type === "status") {
             setS(prev => ({ ...prev, status: ev.message }));
             thinkingLog.append({ runId, mode, kind: "status", text: ev.message });
+          } else if (ev.type === "preview") {
+            setS(prev => ({ ...prev, preview: ev.analysis }));
+            thinkingLog.append({
+              runId, mode, kind: "status",
+              text: `Preview ${ev.analysis.behavioral_score} · ${ev.analysis.risk_level}`,
+            });
           } else if (ev.type === "result") {
             setS(prev => ({
               ...prev,
               analysis: ev.analysis,
+              preview: null,
               // Prefer the result's audited log over any partial stream text.
               // thinking_log because it includes the audited 7-step trace
               // formatted consistently with the e4b real-inference path.
@@ -215,6 +225,7 @@ export function useStreamingAnalysis(
 
   return {
     analysis:      s.analysis,
+    preview:       s.preview,
     streamingText: s.streamingText,
     status:        s.status,
     streaming:     s.streaming,

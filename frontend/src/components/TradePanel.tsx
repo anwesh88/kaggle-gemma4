@@ -62,7 +62,7 @@ function readKiteWatchlist(): { symbol: string }[] {
 
 interface Props {
   analysis: BehavioralAnalysis | null;
-  onTradeExecuted?: () => void;
+  onTradeExecuted?: () => void | Promise<void>;
 }
 
 export function TradePanel({ analysis, onTradeExecuted }: Props) {
@@ -178,7 +178,7 @@ export function TradePanel({ analysis, onTradeExecuted }: Props) {
     try {
       await api.confirmTrade(symbol, quantity, price, type);
       setDone(true);
-      onTradeExecuted?.();
+      await onTradeExecuted?.();
       setTimeout(() => setDone(false), 3000);
     } catch (e) {
       console.error("Trade failed:", e);
@@ -318,7 +318,7 @@ export function TradePanel({ analysis, onTradeExecuted }: Props) {
                 {theme.bumpHeadline}
               </h3>
               <p style={{ fontSize: "13px", color: "#6B6860", lineHeight: "1.6" }}>
-                AI model detected{" "}
+                Fin AI detected{" "}
                 <strong style={{ color: "#DC2626" }}>{analysis?.detected_pattern}</strong>
                 {" "}— behavioral score{" "}
                 <strong style={{ color: "#DC2626" }}>{analysis?.behavioral_score}/1000</strong>.
@@ -672,7 +672,7 @@ export function TradePanel({ analysis, onTradeExecuted }: Props) {
               fontSize: "11px", color: "#DC2626", textAlign: "center",
               lineHeight: "1.5",
             }}>
-              AI model detected <strong>{analysis?.detected_pattern}</strong>.
+              Fin AI detected <strong>{analysis?.detected_pattern}</strong>.
               A commitment phrase will be required before your order executes.
             </p>
           )}

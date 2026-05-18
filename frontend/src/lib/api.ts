@@ -89,7 +89,7 @@ export const api = {
     count: number;
   }>(`/quotes/lookup?symbols=${encodeURIComponent(symbols.join(","))}`),
 
-  // Multimodal AI model vision — four-layer behavioral chart analysis.
+  // Multimodal Fin AI vision — four-layer behavioral chart analysis.
   analyzeChart: async (file: File) => {
     const fd = new FormData(); fd.append("file", file);
     const r = await fetch(`${BASE}/analyze-chart`, {
@@ -235,6 +235,7 @@ export const api = {
       quantity: number;
       order_type: string;
       broker: "kite";
+      variety: "regular" | "amo";
     }>("/kite/place-order", {
       method: "POST",
       body: JSON.stringify(body),

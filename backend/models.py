@@ -49,10 +49,13 @@ class TradingContext(BaseModel):
     open_pnl: Optional[float] = None
     open_positions_count: int = 0
     holdings_count: int = 0
+    total_exposure: float = 0.0
     exposure_concentration: float = 0.0
     inferred_loss_streak: int = 0
     realized_pnl_source: Literal["exact", "derived", "unknown"] = "unknown"
     open_pnl_source: Literal["exact", "derived", "unknown"] = "unknown"
+    portfolio_positions: list[str] = Field(default_factory=list)
+    portfolio_holdings: list[str] = Field(default_factory=list)
     analysis_notes: list[str] = Field(default_factory=list)
 
 class BehavioralAnalysis(BaseModel):
@@ -69,6 +72,9 @@ class BehavioralAnalysis(BaseModel):
     chart_insight: Optional[str] = None  # From multimodal analysis
     vows_violated: list[str] = []
     inference_seconds: Optional[float] = None  # Real local-CPU Gemma latency
+    analysis_source: Literal["deterministic_fast_path", "deterministic_preview", "gemma_backed", "unavailable"] = "gemma_backed"
+    model_used: bool = True
+    timings_ms: dict[str, float] = Field(default_factory=dict)
 
 class DNASession(BaseModel):
     session_id: str

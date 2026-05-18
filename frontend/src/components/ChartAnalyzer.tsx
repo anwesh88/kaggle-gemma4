@@ -27,7 +27,7 @@ export function ChartAnalyzer({ onInsight }: Props) {
       onInsight(r.personalized_insight || r.insight || "");
     } catch {
       const stub: ChartResult = {
-        insight: "Chart analysis unavailable — AI model vision requires Ollama to be running.",
+        insight: "Chart analysis unavailable — Fin AI vision requires Ollama to be running.",
         market_state: "unknown",
         market_structure: { trend: "unknown", momentum: "unknown", volatility: "unknown",
           volume_confirmation: "unknown", key_observation: "Chart could not be analyzed." },
@@ -84,7 +84,7 @@ export function ChartAnalyzer({ onInsight }: Props) {
           background: "#F9F8F6", border: "1px solid #E8E5DF",
           borderRadius: "99px", padding: "2px 7px",
         }}>
-          AI model vision · local
+          Fin AI vision · built on Gemma 4 · local
         </span>
       </div>
 
@@ -122,7 +122,7 @@ export function ChartAnalyzer({ onInsight }: Props) {
                 animation: "spin 0.8s linear infinite",
               }} />
               <p style={{ fontSize: "12px", fontWeight: "600", color: "#C2410C" }}>
-                AI model analyzing chart + your behavior history…
+                Fin AI is analyzing chart + your behavior history…
               </p>
               {fileName && <p style={{ fontSize: "11px", color: "#9B9890" }}>{fileName}</p>}
             </>

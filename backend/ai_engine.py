@@ -23,6 +23,7 @@ penalty. With pre-warming, target real-Gemma latency on i7-1255U is
 import os, json, re, time, asyncio
 from typing import AsyncIterator
 from models import TradingContext, BehavioralAnalysis
+from behavior_rules import DeterministicAssessment, assess_behavior
 
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma4:e2b")
 OLLAMA_HOST  = os.getenv("OLLAMA_HOST",  "http://localhost:11434")
@@ -62,10 +63,9 @@ OLLAMA_OPTIONS = {
     "repeat_penalty": _f("OLLAMA_REPEAT_PENALTY", 1.05),
 }
 
-# How long Ollama keeps the model loaded after the last request. 5m default
-# means the next request after a 5-minute idle pays cold-start. On a GPU
-# instance with bursty traffic, set "30m" or "-1" (forever).
-OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "5m")
+# How long Ollama keeps the model loaded after the last request. The CPU path
+# is dominated by cold reloads, so keep the model hot longer by default.
+OLLAMA_KEEP_ALIVE = os.getenv("OLLAMA_KEEP_ALIVE", "30m")
 
 
 def _extract_json_object(raw: str) -> dict | None:
@@ -111,19 +111,20 @@ def _extract_json_object(raw: str) -> dict | None:
 LANG_NAMES = {"en": "English", "hi": "Hindi (Devanagari script)", "te": "Telugu", "ta": "Tamil"}
 
 
-def build_analysis_prompt(ctx: TradingContext) -> str:
-    """
-    Compressed prompt tuned for CPU inference. Keeps the structured analysis
-    contract intact while cutting ~200 tokens of verbose instructions that the
-    model didn't need.
-    """
+
+def build_analysis_prompt(
+    ctx: TradingContext,
+    assessment: DeterministicAssessment | None = None,
+) -> str:
+    """Lean Gemma prompt: perception + language only, no arithmetic."""
+    assessment = assessment or assess_behavior(ctx)
     losses = [t for t in ctx.recent_trades if t.is_loss]
     loss_count = len(losses)
     total_loss = sum(t.pnl for t in losses if t.pnl is not None)
     closed_count = sum(1 for t in ctx.recent_trades if t.pnl is not None)
     open_count = max(0, len(ctx.recent_trades) - closed_count)
     margin_pct = round(ctx.margin.usage_ratio * 100, 1)
-    lang_name  = LANG_NAMES.get(ctx.preferred_language.value, "English")
+    lang_name = LANG_NAMES.get(ctx.preferred_language.value, "English")
 
     def _trade_line(t) -> str:
         if t.pnl is None:
@@ -137,76 +138,70 @@ def build_analysis_prompt(ctx: TradingContext) -> str:
             f"qty={t.quantity} @ Rs.{t.price:.2f} {pnl_text} {outcome}"
         )
 
-    trade_lines = "\n".join(
-        _trade_line(t)
-        for t in ctx.recent_trades[-5:]   # cap at 5 most recent
-    ) or "(none)"
-    vow_lines = "\n".join(f"V{i+1}: {v}" for i, v in enumerate(ctx.trading_vows)) or "(none)"
+    trade_lines = "; ".join(_trade_line(t) for t in ctx.recent_trades[-5:]) or "none"
+    vow_lines = "; ".join(ctx.trading_vows) or "none"
 
     hist = ""
     if ctx.historical_sessions > 0:
-        hist = (f"\nHISTORY: {ctx.historical_sessions} past sessions, "
-                f"high-risk rate {ctx.historical_loss_rate*100:.0f}% "
-                f"(persistent pattern INCREASES score).")
+        hist = (
+            f" History: {ctx.historical_sessions} sessions, "
+            f"high-risk rate {ctx.historical_loss_rate*100:.0f}%."
+        )
+
+    position_lines = "; ".join(ctx.portfolio_positions[:5]) if ctx.portfolio_positions else "none"
+    holding_lines = "; ".join(ctx.portfolio_holdings[:5]) if ctx.portfolio_holdings else "none"
+    portfolio_block = (
+        f" Portfolio: positions {position_lines}; holdings {holding_lines}; "
+        f"total exposure Rs.{ctx.total_exposure:.0f}; "
+        f"{ctx.exposure_concentration*100:.0f}% concentration."
+    )
 
     live_block = ""
     if ctx.source_mode == "kite":
         notes = "; ".join(ctx.analysis_notes[:3]) if ctx.analysis_notes else "none"
         realized_text = (
-            f"₹{ctx.day_realized_pnl:.0f} ({ctx.realized_pnl_source})"
+            f"Rs.{ctx.day_realized_pnl:.0f} ({ctx.realized_pnl_source})"
             if ctx.day_realized_pnl is not None
             else f"unknown ({ctx.realized_pnl_source})"
         )
         open_text = (
-            f"₹{ctx.open_pnl:.0f} ({ctx.open_pnl_source})"
+            f"Rs.{ctx.open_pnl:.0f} ({ctx.open_pnl_source})"
             if ctx.open_pnl is not None
             else f"unknown ({ctx.open_pnl_source})"
         )
-        live_block = f"""
+        live_block = (
+            f" Live: realized {realized_text}; open P&L {open_text}; "
+            f"{ctx.open_positions_count} open positions; "
+            f"inferred loss streak {ctx.inferred_loss_streak}; notes {notes}."
+        )
 
-LIVE ACCOUNT CONTEXT
-Day realized P&L: {realized_text}
-Open P&L / M2M: {open_text}
-Open positions: {ctx.open_positions_count}
-Holdings: {ctx.holdings_count}
-Largest exposure concentration: {ctx.exposure_concentration*100:.0f}%
-Inferred loss streak: {ctx.inferred_loss_streak}
-Snapshot notes: {notes}
-"""
+    violated = "; ".join(assessment.vows_violated) if assessment.vows_violated else "none"
+    should_nudge = assessment.score >= 600
 
-    return f"""You are Finsight OS, a behavioral guardian for self-directed market participants in India. In SEBI's FY2024-25 derivatives study, 91% of individual F&O traders lost money. Detect emotional patterns and intervene.
+    return f"""You are Finsight OS, a behavioral guardian for Indian retail traders.
 
-DATA
-Trades this session: {len(ctx.recent_trades)} ({closed_count} closed, {open_count} open)
-Closed losses this session: {loss_count} | Realized loss: Rs.{total_loss:.0f}
-Margin used: {margin_pct}%{' [DANGER >70%]' if margin_pct > 70 else ''}
+Exact rubric already computed in Python:
+- behavioral score {assessment.score}/1000
+- risk {assessment.risk_level}
+- violated vows: {violated}
 
-TRADES (chronological)
-{trade_lines}
+Session: {len(ctx.recent_trades)} trades ({closed_count} closed, {open_count} open); {loss_count} closed losses; realized loss Rs.{total_loss:.0f}; margin {margin_pct}%.
+Trades: {trade_lines}
+Vows: {vow_lines}.{hist}{portfolio_block}{live_block}
 
-VOWS (user's identity contract)
-{vow_lines}{hist}{live_block}
+Choose the best pattern from: Revenge Trading, FOMO, Over-Leveraging, Addiction Loop, Panic Selling, Healthy Trading.
+Return an English nudge only if score is high. If a nudge is needed, make it EXACTLY 15 words, first person, emotionally resonant, and name the pattern.
+Translate the same nudge naturally into {lang_name}; if no nudge is needed, both nudge fields must be empty.
 
-Reason internally before answering:
-- Which vows are violated?
-- Pattern: one of "Revenge Trading" | "FOMO" | "Over-Leveraging" | "Addiction Loop" | "Panic Selling" | "Healthy Trading".
-- Score 0-1000: +200 if 2+ losses/hr, +200 if 4+ losses, +150 if margin>70%, +200 per vow violated, +150 if historical risk>50%, -100 if last was a win. Cap 1000.
-- In live Kite mode, use negative realized P&L, negative open P&L, 2+ inferred loss streak, and >50% exposure concentration as direct risk evidence.
-- If a live P&L source is "derived", treat it as medium-confidence evidence and cross-check it against margin use, concentration, and open risk before deciding.
-- Nudge (only if score>600): EXACTLY 15 words, first person, names the pattern, emotionally resonant. Example: "I am trading to recover losses, not following my plan today."
-- Local nudge: translate into {lang_name}, keep natural.
-- Session stress 0-100: emotional and exposure stress severity.
-
-Reply with ONLY this JSON object — no prose before or after, no markdown:
+Reply ONLY with JSON:
 {{
-  "behavioral_score": <0-1000 integer>,
-  "risk_level": "<low|medium|high>",
-  "detected_pattern": "<one of the 6 patterns>",
-  "nudge_message": "<15 words English, or empty if score<=600>",
-  "nudge_message_local": "<same nudge in {lang_name}, or empty>",
-  "vows_violated": ["<vow text>"],
-  "crisis_score": <0-100 integer>
-}}"""
+  \"detected_pattern\": \"<one allowed pattern>\",
+  \"nudge_message\": \"<15-word English nudge or empty>\",
+  \"nudge_message_local\": \"<same nudge in {lang_name} or empty>\"
+}}
+
+Nudge needed: {"yes" if should_nudge else "no"}."""
+
 
 
 def _context_counts(ctx: TradingContext) -> tuple[int, int, int, int, float, float]:
@@ -252,6 +247,18 @@ def _live_evidence(ctx: TradingContext) -> str:
     )
 
 
+def _portfolio_evidence(ctx: TradingContext) -> str:
+    if not ctx.portfolio_positions and not ctx.portfolio_holdings:
+        return ""
+    positions = "; ".join(ctx.portfolio_positions[:3]) if ctx.portfolio_positions else "none"
+    holdings = "; ".join(ctx.portfolio_holdings[:3]) if ctx.portfolio_holdings else "none"
+    return (
+        f"; portfolio: positions {positions}; holdings {holdings}; "
+        f"total exposure Rs.{ctx.total_exposure:.0f}; "
+        f"{ctx.exposure_concentration*100:.0f}% concentration"
+    )
+
+
 def _build_real_thinking_log(
     ctx: TradingContext,
     *,
@@ -271,11 +278,11 @@ def _build_real_thinking_log(
     local_status = "yes" if nudge_loc else "not needed"
 
     return "\n".join([
-        f"Real Gemma 4 inference - {elapsed:.1f}s on {OLLAMA_MODEL}",
+        f"Deterministic rubric + Gemma 4 language - {elapsed:.1f}s model time on {OLLAMA_MODEL}",
         (
             "STEP 1 - VOW CHECK: "
-            f"Gemma received {trade_count} trade(s) ({open_count} open, {closed_count} closed) "
-            f"and {len(ctx.trading_vows)} vow(s); violated: {vow_summary}."
+            f"Python checked {trade_count} trade(s) ({open_count} open, {closed_count} closed) "
+            f"against {len(ctx.trading_vows)} vow(s); violated: {vow_summary}."
         ),
         (
             "STEP 2 - PATTERN: "
@@ -283,8 +290,9 @@ def _build_real_thinking_log(
         ),
         (
             "STEP 3 - SCORE: "
-            f"{score}/1000 ({risk}); {loss_count} closed loss(es), "
-            f"realized loss Rs.{total_loss:.0f}, margin {margin_pct}%{_live_evidence(ctx)}."
+            f"Deterministic rubric scored {score}/1000 ({risk}); {loss_count} closed loss(es), "
+            f"realized loss Rs.{total_loss:.0f}, margin {margin_pct}%"
+            f"{_portfolio_evidence(ctx)}{_live_evidence(ctx)}."
         ),
         f"STEP 4 - NUDGE: {nudge_preview}.",
         f"STEP 5 - LANGUAGE: local-language nudge {local_status}.",
@@ -334,7 +342,113 @@ def get_unavailable_analysis(
         sebi_disclosure=None,
         thinking_log=thinking_log,
         inference_seconds=None,
+        analysis_source="unavailable",
+        model_used=False,
     )
+
+
+def _round_ms(seconds: float) -> float:
+    return round(seconds * 1000, 2)
+
+
+def _build_preview_analysis(
+    assessment: DeterministicAssessment,
+    timings_ms: dict[str, float] | None = None,
+) -> BehavioralAnalysis:
+    return BehavioralAnalysis(
+        behavioral_score=assessment.score,
+        risk_level=assessment.risk_level,  # type: ignore[arg-type]
+        detected_pattern=assessment.inferred_pattern,
+        nudge_message="",
+        nudge_message_local="",
+        vows_violated=assessment.vows_violated,
+        crisis_score=assessment.crisis_score,
+        crisis_detected=assessment.crisis_detected,
+        sebi_disclosure=None,
+        thinking_log=None,
+        inference_seconds=None,
+        analysis_source="deterministic_preview",
+        model_used=False,
+        timings_ms=timings_ms or {},
+    )
+
+
+def _build_fast_path_analysis(
+    ctx: TradingContext,
+    assessment: DeterministicAssessment,
+    total_started_at: float,
+    timings_ms: dict[str, float],
+) -> BehavioralAnalysis:
+    trade_count, closed_count, open_count, loss_count, total_loss, margin_pct = _context_counts(ctx)
+    thinking_log = "\n".join([
+        "Deterministic low-risk fast path - Gemma skipped",
+        (
+            "STEP 1 - VOW CHECK: "
+            f"Python checked {trade_count} trade(s) ({open_count} open, {closed_count} closed) "
+            f"against {len(ctx.trading_vows)} vow(s); violated: none."
+        ),
+        (
+            "STEP 2 - PATTERN: "
+            f"Deterministic rules selected {assessment.inferred_pattern}."
+        ),
+        (
+            "STEP 3 - SCORE: "
+            f"Deterministic rubric scored {assessment.score}/1000 ({assessment.risk_level}); "
+            f"{loss_count} closed loss(es), realized loss Rs.{total_loss:.0f}, margin {margin_pct}%."
+        ),
+        "STEP 4 - NUDGE: none - obvious low-risk session.",
+        "STEP 5 - LANGUAGE: not needed.",
+        f"STEP 6 - STRESS: {assessment.crisis_score}/100 (below threshold).",
+        "STEP 7 - SEBI: disclosure grounded by ChromaDB RAG and attached server-side.",
+    ])
+    total_ms = _round_ms(time.perf_counter() - total_started_at)
+    timings = {**timings_ms, "total_ms": total_ms}
+    print(
+        f"[Finsight AI] deterministic_fast_path score={assessment.score} "
+        f"risk={assessment.risk_level} total={total_ms:.2f}ms"
+    )
+    return BehavioralAnalysis(
+        behavioral_score=assessment.score,
+        risk_level=assessment.risk_level,  # type: ignore[arg-type]
+        detected_pattern=assessment.inferred_pattern,
+        nudge_message="",
+        nudge_message_local="",
+        vows_violated=assessment.vows_violated,
+        crisis_score=assessment.crisis_score,
+        crisis_detected=assessment.crisis_detected,
+        sebi_disclosure="",
+        thinking_log=thinking_log,
+        inference_seconds=0.0,
+        analysis_source="deterministic_fast_path",
+        model_used=False,
+        timings_ms=timings,
+    )
+
+
+async def _generate_behavior_json(prompt: str, *, retry: bool = False) -> tuple[dict | None, float, str]:
+    import ollama
+
+    approx_tokens = len(prompt) // 4 + 32
+    runtime_options = {
+        **OLLAMA_OPTIONS,
+        "num_ctx": max(OLLAMA_OPTIONS.get("num_ctx", 768), approx_tokens + (192 if retry else 128)),
+        "num_predict": max(220 if retry else 160, OLLAMA_OPTIONS.get("num_predict", 200)),
+        "stop": ["\n\n\n", "</s>", "<end>"],
+    }
+    start = time.perf_counter()
+    response = await asyncio.wait_for(
+        ollama.AsyncClient(host=OLLAMA_HOST).generate(
+            model=OLLAMA_MODEL,
+            prompt=prompt,
+            options=runtime_options,
+            format="json",
+            keep_alive=OLLAMA_KEEP_ALIVE,
+        ),
+        timeout=OLLAMA_TIMEOUT_S,
+    )
+    elapsed = time.perf_counter() - start
+    raw = response.get("response", "")
+    return _extract_json_object(raw), elapsed, raw
 
 
 async def warm_up_model() -> None:
@@ -365,44 +479,40 @@ async def warm_up_model() -> None:
         print(f"[Finsight AI] Pre-warm skipped ({type(e).__name__}: {e}) — first request will pay cold start", flush=True)
 
 
-async def analyze_behavior(ctx: TradingContext) -> BehavioralAnalysis:
-    import ollama
 
-    prompt = build_analysis_prompt(ctx)
+async def analyze_behavior(
+    ctx: TradingContext,
+    assessment: DeterministicAssessment | None = None,
+) -> BehavioralAnalysis:
+    total_started_at = time.perf_counter()
+
+    deterministic_started_at = time.perf_counter()
+    assessment = assessment or assess_behavior(ctx)
+    timings_ms: dict[str, float] = {
+        "deterministic_ms": _round_ms(time.perf_counter() - deterministic_started_at)
+    }
+
+    if assessment.obvious_low_risk:
+        return _build_fast_path_analysis(ctx, assessment, total_started_at, timings_ms)
+
+    prompt_started_at = time.perf_counter()
+    prompt = build_analysis_prompt(ctx, assessment)
+    timings_ms["prompt_build_ms"] = _round_ms(time.perf_counter() - prompt_started_at)
 
     runtime_label = "GPU" if OLLAMA_OPTIONS["num_gpu"] > 0 else "CPU"
     print("\n" + "="*60)
     print(f"[Finsight AI] Running {OLLAMA_MODEL} locally ({runtime_label})...")
     print("="*60)
 
-    start = time.time()
-
-    # Use Ollama's `format=json` mode — forces structured output and prevents
-    # the e2b CPU path from emitting 0 chars when sampling stalls. Also
-    # widen num_ctx if the prompt is bigger than the configured budget,
-    # otherwise the model silently truncates and returns nothing.
-    approx_tokens = len(prompt) // 4 + 32
-    runtime_options = {
-        **OLLAMA_OPTIONS,
-        "num_ctx": max(OLLAMA_OPTIONS.get("num_ctx", 768), approx_tokens + 256),
-        # E2B occasionally bails after a single empty token at low predict
-        # budgets — give it room to actually emit the JSON.
-        "num_predict": max(OLLAMA_OPTIONS.get("num_predict", 200), 384),
-        # Stop sequences that often appear after the model finishes the JSON
-        # cleanly (prevents trailing prose that confuses the JSON extractor).
-        "stop": ["\n\n\n", "</s>", "<end>"],
-    }
     try:
-        response = await asyncio.wait_for(
-            ollama.AsyncClient(host=OLLAMA_HOST).generate(
-                model=OLLAMA_MODEL,
-                prompt=prompt,
-                options=runtime_options,
-                format="json",                  # forces JSON output, fixes 0-char bug
-                keep_alive=OLLAMA_KEEP_ALIVE,
-            ),
-            timeout=OLLAMA_TIMEOUT_S,
-        )
+        data, elapsed, raw = await _generate_behavior_json(prompt)
+        timings_ms["model_ms"] = _round_ms(elapsed)
+        if data is None:
+            print("[Finsight AI] JSON parse failed on compact attempt; retrying once with a larger budget")
+            data, retry_elapsed, raw = await _generate_behavior_json(prompt, retry=True)
+            timings_ms["retry_model_ms"] = _round_ms(retry_elapsed)
+            timings_ms["model_ms"] += timings_ms["retry_model_ms"]
+            elapsed += retry_elapsed
     except asyncio.TimeoutError:
         print(f"[Finsight AI] Timeout after {OLLAMA_TIMEOUT_S}s - no model insight produced")
         return get_unavailable_analysis(ctx, f"Timed out after {OLLAMA_TIMEOUT_S}s")
@@ -410,64 +520,68 @@ async def analyze_behavior(ctx: TradingContext) -> BehavioralAnalysis:
         print(f"[Finsight AI] Ollama error: {type(e).__name__}: {e} - no model insight produced")
         return get_unavailable_analysis(ctx, f"Ollama error: {type(e).__name__}: {e}")
 
-    elapsed = time.time() - start
-    raw = response["response"]
-    print(f"[Finsight AI] Inference: {elapsed:.2f}s ({len(raw)} chars)")
-
-    # Brace-balanced JSON extractor — robust to prose around the JSON, to
-    # multiple {} constructs in the same response, and to nested objects.
-    data = _extract_json_object(raw)
-
+    parse_started_at = time.perf_counter()
     if data is None:
-        print(f"[Finsight AI] JSON parse failed — raw response (first 600 chars):")
+        print("[Finsight AI] JSON parse failed after retry - raw response (first 600 chars):")
         print(repr(raw[:600]))
-        print(f"[Finsight AI] No model insight produced")
         return get_unavailable_analysis(ctx, "Gemma returned non-JSON output")
 
-    # Pull fields with defaults
-    score      = int(data.get("behavioral_score", 800))
-    risk       = data.get("risk_level", "high")
-    pattern    = data.get("detected_pattern", "Revenge Trading")
-    nudge      = data.get("nudge_message", "")
-    nudge_loc  = data.get("nudge_message_local", "")
-    vows_v     = data.get("vows_violated", []) or []
-    crisis     = int(data.get("crisis_score", 0))
+    pattern = str(data.get("detected_pattern") or assessment.inferred_pattern)
+    if pattern not in {
+        "Revenge Trading",
+        "FOMO",
+        "Over-Leveraging",
+        "Addiction Loop",
+        "Panic Selling",
+        "Healthy Trading",
+    }:
+        pattern = assessment.inferred_pattern
+
+    should_nudge = assessment.score >= 600
+    nudge = str(data.get("nudge_message") or "") if should_nudge else ""
+    nudge_loc = str(data.get("nudge_message_local") or "") if should_nudge else ""
 
     thinking_log = _build_real_thinking_log(
         ctx,
-        score=score,
-        risk=risk,
+        score=assessment.score,
+        risk=assessment.risk_level,
         pattern=pattern,
         nudge=nudge,
         nudge_loc=nudge_loc,
-        vows_v=[str(v) for v in vows_v],
-        crisis=crisis,
+        vows_v=assessment.vows_violated,
+        crisis=assessment.crisis_score,
         elapsed=elapsed,
     )
 
-    # Console log for technical verification
+    timings_ms["parse_assembly_ms"] = _round_ms(time.perf_counter() - parse_started_at)
+    timings_ms["total_ms"] = _round_ms(time.perf_counter() - total_started_at)
+
+    print(f"[Finsight AI] Inference: {elapsed:.2f}s ({len(raw)} chars)")
     print("\n" + "="*60)
-    print("[GEMMA AUDIT TRACE — Technical Verification]")
+    print("[GEMMA AUDIT TRACE - Technical Verification]")
     print("="*60)
     print(thinking_log)
     print("="*60 + "\n")
 
     return BehavioralAnalysis(
-        behavioral_score=score,
-        risk_level=risk,
+        behavioral_score=assessment.score,
+        risk_level=assessment.risk_level,  # type: ignore[arg-type]
         detected_pattern=pattern,
         nudge_message=nudge,
         nudge_message_local=nudge_loc,
-        vows_violated=vows_v,
-        crisis_score=crisis,
-        crisis_detected=crisis > 70,
-        sebi_disclosure="",     # overwritten by RAG in main.py
+        vows_violated=assessment.vows_violated,
+        crisis_score=assessment.crisis_score,
+        crisis_detected=assessment.crisis_detected,
+        sebi_disclosure="",
         thinking_log=thinking_log,
         inference_seconds=round(elapsed, 2),
+        analysis_source="gemma_backed",
+        model_used=True,
+        timings_ms=timings_ms,
     )
 
 
-# ── Streaming variant ─────────────────────────────────────────────────────────
+# ?? Streaming variant ─────────────────────────────────────────────────────────
 #
 # Yields {type, ...} dicts that the SSE endpoint serializes onto the wire.
 # Three event types:
@@ -476,18 +590,15 @@ async def analyze_behavior(ctx: TradingContext) -> BehavioralAnalysis:
 #   "result"  — the final BehavioralAnalysis (analysis.model_dump())
 
 
-async def analyze_behavior_stream(ctx: TradingContext) -> AsyncIterator[dict]:
-    """
-    Stream only real Gemma-derived analysis.
 
-    Earlier builds streamed a synthetic demo thinking log while Gemma was
-    running. That made successful paper/live runs look fake because the UI
-    could show "No trades placed yet" even when the final model response used
-    real context. This stream now sends status heartbeats while Gemma runs,
-    then emits the final audit log built from the actual context plus Gemma's
-    structured JSON response. If Gemma fails, the result says unavailable
-    explicitly instead of inventing behavioral insight.
-    """
+async def analyze_behavior_stream(ctx: TradingContext) -> AsyncIterator[dict]:
+    """Emit deterministic preview first, then the final audited analysis."""
+    preview_started_at = time.perf_counter()
+    assessment = assess_behavior(ctx)
+    preview_timings = {
+        "deterministic_ms": _round_ms(time.perf_counter() - preview_started_at)
+    }
+
     trade_count, closed_count, open_count, _, _, margin_pct = _context_counts(ctx)
     yield {
         "type": "status",
@@ -496,10 +607,14 @@ async def analyze_behavior_stream(ctx: TradingContext) -> AsyncIterator[dict]:
             f"{len(ctx.trading_vows)} vow(s), margin {margin_pct}% to {OLLAMA_MODEL}"
         ),
     }
+    yield {
+        "type": "preview",
+        "analysis": _build_preview_analysis(assessment, preview_timings).model_dump(),
+    }
 
     start_t = time.time()
     real_task: asyncio.Task[BehavioralAnalysis] = asyncio.create_task(
-        asyncio.wait_for(analyze_behavior(ctx), timeout=OLLAMA_TIMEOUT_S + 5)
+        asyncio.wait_for(analyze_behavior(ctx, assessment), timeout=OLLAMA_TIMEOUT_S + 5)
     )
 
     try:
@@ -510,7 +625,7 @@ async def analyze_behavior_stream(ctx: TradingContext) -> AsyncIterator[dict]:
                 yield {
                     "type": "status",
                     "message": (
-                        f"Gemma still analyzing real trade context "
+                        f"Gemma still refining the final wording "
                         f"({elapsed:.0f}s, {trade_count} trade(s) sent)"
                     ),
                 }
@@ -521,8 +636,10 @@ async def analyze_behavior_stream(ctx: TradingContext) -> AsyncIterator[dict]:
     try:
         analysis = await real_task
         elapsed = time.time() - start_t
-        print(f"[Finsight AI] Stream done: real Gemma in {elapsed:.2f}s, "
-              f"score={analysis.behavioral_score}")
+        print(
+            f"[Finsight AI] Stream done: source={analysis.analysis_source} "
+            f"in {elapsed:.2f}s, score={analysis.behavioral_score}"
+        )
     except (asyncio.TimeoutError, asyncio.CancelledError, Exception) as e:
         print(f"[Finsight AI] Stream done: unavailable ({type(e).__name__}: {e})")
         analysis = get_unavailable_analysis(ctx, f"Stream failed: {type(e).__name__}: {e}")

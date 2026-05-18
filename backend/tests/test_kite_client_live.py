@@ -15,6 +15,13 @@ def test_redirect_diagnostics_warns_on_127_hosts():
     assert "localhost" in diag["warning"]
 
 
+def test_to_iso_never_leaks_unparseable_trade_timestamp():
+    normalized = kite_client._to_iso("bad-broker-date")
+
+    assert normalized != "bad-broker-date"
+    assert datetime.fromisoformat(normalized).tzinfo is not None
+
+
 def test_kite_trades_to_finsight_derives_fifo_realized_pnl():
     raw_trades = [
         {
@@ -116,4 +123,7 @@ def test_build_account_snapshot_exposes_summary_and_positions():
     assert snapshot["summary"]["open_positions_count"] == 1
     assert snapshot["summary"]["holdings_count"] == 1
     assert snapshot["summary"]["open_pnl"] == -300.0
+    assert snapshot["holdings"][0]["exposure"] == 7250.0
+    assert snapshot["summary"]["total_exposure"] == 8250.0
+    assert round(snapshot["summary"]["exposure_concentration"], 4) == 0.8788
     assert snapshot["watchlist"][0]["symbol"] == "NSE:RELIANCE"

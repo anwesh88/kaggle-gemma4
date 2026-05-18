@@ -30,12 +30,12 @@ free but requires Indian KYC.
    - **App name**: `Finsight OS Local`
    - **App type**: `Connect`
    - **Redirect URL**: `http://localhost:8000/kite/callback` (exactly this)
-   - **Allowed IPs**: paste your public IP (find it at https://api.ipify.org). **Required for placing real orders** — Zerodha's write API rejects calls from non-whitelisted IPs with `PermissionException: No IPs configured`. Read-only calls (holdings, quotes, positions) work without this, but `place_order` won't.
+   - **Allowed IPs**: paste both your public **IPv4** and **IPv6** addresses (find them at https://www.showmyip.com/). **Required for placing real orders** — Zerodha's write API rejects calls from non-whitelisted IPs with `PermissionException: No IPs configured`. Read-only calls (holdings, quotes, positions) work without this, but `place_order` won't.
    - **Description**: `Behavioral guardian for retail F&O traders`
 5. Submit. You'll see your **API key** and **API secret** on the next page.
    Copy both — the secret is shown only once.
 
-> **Dynamic-IP heads-up:** most home broadband connections rotate the public IP after router restarts. If `/kite/place-order` ever returns `PermissionException: No IPs configured`, re-check ipify.org and re-save the IP on the Kite app. Read endpoints will keep working even with a stale IP whitelist.
+> **Dynamic-IP heads-up:** most home broadband connections rotate public IPs after router restarts. If `/kite/place-order` ever returns `PermissionException: No IPs configured`, re-check both IPv4 and IPv6 at https://www.showmyip.com/ and re-save both on the Kite app. Read endpoints will keep working even with a stale IP whitelist.
 
 Important:
 - Use `localhost` consistently for local login.

@@ -24,7 +24,10 @@ export interface BehavioralAnalysis {
   sebi_source: string | null;
   thinking_log: string | null;
   chart_insight: string | null;
-  inference_seconds: number | null;   // Real local-CPU AI model latency
+  inference_seconds: number | null;   // Real local-CPU Fin AI latency
+  analysis_source?: "deterministic_fast_path" | "deterministic_preview" | "gemma_backed" | "unavailable";
+  model_used?: boolean;
+  timings_ms?: Record<string, number>;
 }
 
 export interface DNASession {

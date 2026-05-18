@@ -22,6 +22,7 @@ from typing import Any
 from models import TradingContext, MarginData, Trade, Language
 from paper_trading import (
     get_session_trades_for_ai,
+    get_open_positions,
     compute_margin,
     seed_demo_trades,
     has_session_trades,
@@ -53,7 +54,9 @@ def get_trading_context(mode: str = "demo") -> TradingContext:
     trades: list[Trade] = get_session_trades_for_ai(
         since_minutes=240, mode=db_mode,
     )
+    open_positions = get_open_positions(mode=db_mode)
     margin: MarginData = compute_margin(total=PAPER_CAPITAL, mode=db_mode)
+    total_exposure, exposure_concentration = _portfolio_exposure(open_positions)
 
     return TradingContext(
         recent_trades=trades,
@@ -68,6 +71,10 @@ def get_trading_context(mode: str = "demo") -> TradingContext:
         historical_sessions=0,
         historical_loss_rate=0.0,
         source_mode="demo" if mode == "demo" else "paper",
+        open_positions_count=len(open_positions),
+        total_exposure=total_exposure,
+        exposure_concentration=exposure_concentration,
+        portfolio_positions=_paper_position_summaries(open_positions),
     )
 
 
@@ -123,10 +130,13 @@ async def get_kite_trading_context(session_id: str) -> TradingContext:
         open_pnl=_opt_float(summary.get("open_pnl")),
         open_positions_count=int(summary.get("open_positions_count", 0) or 0),
         holdings_count=int(summary.get("holdings_count", 0) or 0),
+        total_exposure=float(summary.get("total_exposure", 0) or 0),
         exposure_concentration=float(summary.get("exposure_concentration", 0) or 0),
         inferred_loss_streak=int(summary.get("inferred_loss_streak", 0) or 0),
         realized_pnl_source=str(summary.get("realized_pnl_source", "unknown")),
         open_pnl_source=str(summary.get("open_pnl_source", "unknown")),
+        portfolio_positions=_kite_position_summaries(snapshot.get("positions", [])),
+        portfolio_holdings=_kite_holding_summaries(snapshot.get("holdings", [])),
         analysis_notes=[
             str(note)
             for note in [
@@ -170,24 +180,49 @@ def _norm_action(value: Any) -> str:
 
 def _kite_snapshot_trades_for_ai(snapshot: dict[str, Any]) -> list[Trade]:
     """
-    Closed live trades + current open positions for Gemma.
+    Closed live trades + all known live open lots for Gemma.
 
     Kite's trade-book endpoint only describes executions. Current risk lives in
     `positions`, so an account with an open live position but no closed trade
-    could previously look empty to the AI. We feed closed realized legs from
-    the trade book, then append one derived OPEN leg per current net position.
+    could previously look empty to the AI. We preserve explicit open lots when
+    the normalized trade book provides them, then append only the uncovered
+    remainder of each current net position. That keeps prior open executions
+    visible without double-counting the same position twice.
     """
     out: list[Trade] = []
+    covered_open_qty: dict[tuple[str, str], int] = {}
 
     for t in snapshot.get("trades", []) or []:
         realized_pnl = _opt_float(t.get("realized_pnl"))
+        symbol = str(t.get("symbol", "") or "")
+        action = _norm_action(t.get("action"))
+        quantity_remaining = int(t.get("quantity_remaining", 0) or 0)
+
         if realized_pnl is None:
+            if not symbol or quantity_remaining <= 0:
+                continue
+            covered_open_qty[(symbol, action)] = (
+                covered_open_qty.get((symbol, action), 0) + quantity_remaining
+            )
+            out.append(
+                Trade(
+                    trade_id=str(t.get("trade_id") or t.get("order_id") or ""),
+                    symbol=symbol,
+                    action=action,
+                    quantity=quantity_remaining,
+                    price=float(t.get("price", 0) or 0),
+                    timestamp=_parse_timestamp(t.get("timestamp")),
+                    pnl=None,
+                    is_loss=False,
+                )
+            )
             continue
+
         out.append(
             Trade(
                 trade_id=str(t.get("trade_id") or t.get("order_id") or ""),
-                symbol=str(t.get("symbol", "")),
-                action=_norm_action(t.get("action")),
+                symbol=symbol,
+                action=action,
                 quantity=int(t.get("quantity", 0) or 0),
                 price=float(t.get("price", 0) or 0),
                 timestamp=_parse_timestamp(t.get("timestamp")),
@@ -201,14 +236,16 @@ def _kite_snapshot_trades_for_ai(snapshot: dict[str, Any]) -> list[Trade]:
         symbol = str(pos.get("symbol", "") or "")
         qty = int(pos.get("quantity", 0) or 0)
         price = float(pos.get("avg_price", pos.get("last_price", 0)) or 0)
-        if not symbol or qty <= 0 or price <= 0:
+        side = _norm_action(pos.get("side"))
+        uncovered_qty = max(0, qty - covered_open_qty.get((symbol, side), 0))
+        if not symbol or uncovered_qty <= 0 or price <= 0:
             continue
         out.append(
             Trade(
-                trade_id=f"OPEN-POS-{symbol}-{_norm_action(pos.get('side'))}",
+                trade_id=f"OPEN-POS-{symbol}-{side}",
                 symbol=symbol,
-                action=_norm_action(pos.get("side")),
-                quantity=qty,
+                action=side,
+                quantity=uncovered_qty,
                 price=price,
                 timestamp=now,
                 pnl=None,
@@ -240,3 +277,44 @@ def _kite_holding_notes(holdings: list[dict[str, Any]]) -> list[str]:
             f"avg={holding.get('avg_price', 0)} pnl={holding.get('pnl', 0)}"
         )
     return notes
+
+
+def _portfolio_exposure(positions: list[dict[str, Any]]) -> tuple[float, float]:
+    exposures = [
+        abs(float(pos.get("quantity", 0) or 0) * float(pos.get("avg_price", 0) or 0))
+        for pos in positions or []
+    ]
+    total = sum(exposures)
+    concentration = (max(exposures) / total) if total > 0 else 0.0
+    return total, concentration
+
+
+def _paper_position_summaries(positions: list[dict[str, Any]]) -> list[str]:
+    return [
+        (
+            f"{pos.get('side', '')} {pos.get('symbol', '')} "
+            f"qty={pos.get('quantity', 0)} avg={pos.get('avg_price', 0)}"
+        )
+        for pos in sorted((positions or []), key=lambda p: str(p.get("symbol", "")))[:5]
+    ]
+
+
+def _kite_position_summaries(positions: list[dict[str, Any]]) -> list[str]:
+    return [
+        (
+            f"{pos.get('side', '')} {pos.get('symbol', '')} "
+            f"qty={pos.get('quantity', 0)} avg={pos.get('avg_price', 0)} "
+            f"open_pnl={pos.get('pnl', 0)}"
+        )
+        for pos in (positions or [])[:5]
+    ]
+
+
+def _kite_holding_summaries(holdings: list[dict[str, Any]]) -> list[str]:
+    return [
+        (
+            f"{holding.get('symbol', '')} qty={holding.get('quantity', 0)} "
+            f"avg={holding.get('avg_price', 0)} pnl={holding.get('pnl', 0)}"
+        )
+        for holding in (holdings or [])[:5]
+    ]

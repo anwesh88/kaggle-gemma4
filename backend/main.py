@@ -16,7 +16,7 @@ from ai_engine import (
     analyze_behavior_stream,
 )
 from behavioral_dna import get_behavioral_dna, save_session, get_historical_context
-from multimodal_engine import analyze_chart_image, analyze_chart_full
+from multimodal_engine import analyze_chart_image, analyze_chart_full, preprocess_image_bytes, warm_up_vision_model
 from rag_engine import retrieve_sebi_context
 from market_data import get_market_snapshot
 from paper_trading import (
@@ -48,6 +48,59 @@ def get_kite_session(request: Request) -> str | None:
 
 def dna_mode_for(mode: str) -> str:
     return mode if mode in VALID_MODES else "demo"
+
+
+def _is_amo_conversion_error(exc: Exception) -> bool:
+    return "could not be converted to a after market order" in str(exc).lower()
+
+
+async def _place_kite_order_with_amo_retry(
+    *,
+    session_id: str,
+    symbol: str,
+    quantity: int,
+    price: float,
+    transaction_type: str,
+    exchange: str = "NSE",
+    product: str = "MIS",
+    order_type: str = "LIMIT",
+) -> tuple[dict, str]:
+    """
+    Place a Kite order and recover once from Zerodha's after-hours auto-AMO
+    conversion failure by retrying with the explicit AMO variety.
+    """
+    try:
+        result = await kite_client.place_order(
+            session_id=session_id,
+            symbol=symbol,
+            quantity=quantity,
+            price=price,
+            transaction_type=transaction_type,
+            exchange=exchange,
+            product=product,
+            order_type=order_type,
+            variety="regular",
+        )
+        return result, "regular"
+    except Exception as exc:
+        if not _is_amo_conversion_error(exc):
+            raise
+        print(
+            f"[kite/place-order] regular->amo retry · symbol={symbol} qty={quantity} "
+            f"type={transaction_type}/{order_type} product={product}"
+        )
+        result = await kite_client.place_order(
+            session_id=session_id,
+            symbol=symbol,
+            quantity=quantity,
+            price=price,
+            transaction_type=transaction_type,
+            exchange=exchange,
+            product=product,
+            order_type=order_type,
+            variety="amo",
+        )
+        return result, "amo"
 
 DEMO_MODE = os.getenv("DEMO_MODE", "true").lower() == "true"
 user_vows: list[str] = [
@@ -84,9 +137,16 @@ async def lifespan(app: FastAPI):
     get_collection()
     print(f"   RAG:  SEBI circulars indexed")
 
-    # Pre-warm Gemma so the first user request doesn't pay cold-start.
-    # Runs in the background — we don't block startup if Ollama is offline.
-    asyncio.create_task(warm_up_model())
+    # Pre-warm text inference so the first behavioral request avoids a cold
+    # start. Vision prewarm is opt-in now: ordinary chart screenshots hit the
+    # deterministic fast path, and forcing a 50s Gemma-vision load on every
+    # backend restart is usually wasted work on CPU laptops.
+    async def _prewarm_local_models():
+        await warm_up_model()
+        if os.getenv("OLLAMA_PREWARM_VISION", "false").lower() in {"1", "true", "yes"}:
+            await warm_up_vision_model()
+
+    asyncio.create_task(_prewarm_local_models())
 
     # Restore the last Kite session from encrypted disk (if any). Single
     # profile() call; cheap. If the daily 6 AM IST expiry has fired, this
@@ -189,15 +249,15 @@ async def analyze(request: Request):
         print(f"[ERROR] Gemma failed: {e} - no model insight produced")
         result = get_unavailable_analysis(ctx, f"Server error: {type(e).__name__}: {e}")
 
-    model_completed = result.inference_seconds is not None
-    if model_completed:
-        # Attach RAG-grounded SEBI disclosure only to completed model output.
+    analysis_completed = result.analysis_source != "unavailable"
+    if analysis_completed:
+        # Attach RAG-grounded SEBI disclosure only to completed analyses.
         result.sebi_disclosure = sebi_ctx[:200]
         result.sebi_source = sebi_source
 
     # Persist session to Behavioral DNA (skipped for empty paper-mode runs
     # by save_session itself — see behavioral_dna.save_session for the gate).
-    if model_completed:
+    if analysis_completed:
         session_id = f"S{int(time.time())}"
         activity_count = (
             max(len(ctx.recent_trades), ctx.open_positions_count, ctx.holdings_count)
@@ -231,6 +291,9 @@ async def analyze_chart(request: Request, file: UploadFile = File(...)):
     trades") instead of generic technical-indicator commentary.
     """
     contents = await file.read()
+    preprocess_started_at = time.perf_counter()
+    contents = preprocess_image_bytes(contents)
+    preprocess_ms = round((time.perf_counter() - preprocess_started_at) * 1000, 2)
     b64 = base64.b64encode(contents).decode()
     mode = get_mode(request)
 
@@ -277,6 +340,8 @@ async def analyze_chart(request: Request, file: UploadFile = File(...)):
         symbol=file.filename or "",
         context=trader_context or None,
     )
+    if isinstance(full.get("_timings_ms"), dict):
+        full["_timings_ms"]["image_preprocess_ms"] = preprocess_ms
 
     # Attach deterministic reasons for any 0% behavioral-risk score. The
     # model is honest about low risk in calm conditions / empty history,
@@ -428,6 +493,7 @@ async def analyze_stream(request: Request):
     Each event is a JSON object with one of:
         {"type": "status",  "message": str}
         {"type": "token",   "text":    str}
+        {"type": "preview", "analysis": BehavioralAnalysis dict}
         {"type": "result",  "analysis": BehavioralAnalysis dict}
 
     The same broker_client / RAG enrichment / behavioral DNA persistence
@@ -465,23 +531,24 @@ async def analyze_stream(request: Request):
     ctx.historical_sessions = hist_sessions
     ctx.historical_loss_rate = hist_loss_rate
 
-    # SEBI RAG retrieval up front so we can attach it to the final result
+    # Build the RAG query now, but do the retrieval inside the stream so the
+    # deterministic preview can reach the UI without waiting on ChromaDB.
     loss_count = len([t for t in ctx.recent_trades if t.is_loss])
-    sebi_ctx, sebi_source = retrieve_sebi_context(
-        f"retail F&O trading {loss_count} losses margin {ctx.margin.usage_ratio*100:.0f}%"
-    )
+    sebi_query = f"retail F&O trading {loss_count} losses margin {ctx.margin.usage_ratio*100:.0f}%"
 
     async def event_stream():
+        rag_task = asyncio.create_task(asyncio.to_thread(retrieve_sebi_context, sebi_query))
         async for event in analyze_behavior_stream(ctx):
             # Attach SEBI grounding + persist session at the result event
             if event.get("type") == "result":
                 analysis_dict = event["analysis"]
-                model_completed = analysis_dict.get("inference_seconds") is not None
-                if model_completed:
+                analysis_completed = analysis_dict.get("analysis_source") != "unavailable"
+                if analysis_completed:
+                    sebi_ctx, sebi_source = await rag_task
                     analysis_dict["sebi_disclosure"] = sebi_ctx[:200]
                     analysis_dict["sebi_source"] = sebi_source
 
-                if model_completed:
+                if analysis_completed:
                     try:
                         session_id = f"S{int(time.time())}"
                         activity_count = (
@@ -500,6 +567,9 @@ async def analyze_stream(request: Request):
                         print(f"[stream] save_session failed: {e}")
 
             yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+        if not rag_task.done():
+            rag_task.cancel()
 
         # Explicit close marker so the client can release resources cleanly.
         yield "event: close\ndata: {}\n\n"
@@ -529,10 +599,19 @@ async def confirm_trade(trade: TradeRequest, request: Request):
         if not sid or not kite_client.is_authenticated(sid):
             raise HTTPException(status_code=401, detail="Not logged in to Kite — re-login required.")
         try:
-            result = await kite_client.place_order(
-                sid, trade.symbol, trade.quantity, trade.price, trade.action,
+            result, variety = await _place_kite_order_with_amo_retry(
+                session_id=sid,
+                symbol=trade.symbol,
+                quantity=trade.quantity,
+                price=trade.price,
+                transaction_type=trade.action,
             )
-            return {"status": "confirmed", "order_id": result.get("order_id", ""), "broker": "kite"}
+            return {
+                "status": "confirmed",
+                "order_id": result.get("order_id", ""),
+                "broker": "kite",
+                "variety": variety,
+            }
         except PermissionError as e:
             raise HTTPException(status_code=401, detail=str(e))
         except Exception as e:
@@ -791,7 +870,7 @@ async def kite_place_order(request: Request, body: PlaceOrderBody):
         raise HTTPException(status_code=400, detail="quantity must be > 0")
 
     try:
-        result = await kite_client.place_order(
+        result, variety = await _place_kite_order_with_amo_retry(
             session_id       = sid,
             symbol           = body.symbol.upper(),
             quantity         = body.quantity,
@@ -823,11 +902,16 @@ async def kite_place_order(request: Request, body: PlaceOrderBody):
             hint = (
                 "Your public IP isn't whitelisted on the Kite developer console — "
                 "this is required for placing real orders. "
-                "(1) Open https://api.ipify.org to find your public IP. "
+                "(1) Open https://www.showmyip.com/ and copy both your public IPv4 and IPv6 addresses. "
                 "(2) Go to https://developers.kite.trade/apps → your app → "
-                "Allowed IPs → paste the IP → Save. "
+                "Allowed IPs → add both addresses → Save. "
                 "Changes take effect immediately. Note: home connections often have "
-                "dynamic IPs, so you may need to re-whitelist after a router restart."
+                "dynamic IPs, so you may need to re-whitelist IPv4 and IPv6 after a router restart."
+            )
+        elif "could not be converted to a after market order" in low:
+            hint = (
+                "Zerodha could not convert this after-hours order into an AMO. "
+                "Try a LIMIT order, verify the instrument supports AMO, or place it during market hours."
             )
         elif "insufficient" in low and "fund" in low:
             hint = (f"Insufficient funds in your Zerodha account to place this order. "
@@ -865,6 +949,7 @@ async def kite_place_order(request: Request, body: PlaceOrderBody):
         "quantity":         body.quantity,
         "order_type":       ot,
         "broker":           "kite",
+        "variety":          variety,
     }
 
 

@@ -9,9 +9,11 @@
 
 SEBI's FY2024-25 study found 9.6 million Indian retail traders lost a combined **₹1,05,603 crore** on equity derivatives in a single year. **91%** of them lost money. The trading apps they use were optimized to maximize trade volume, not to protect users from themselves.
 
-**Finsight OS** maintains a local behavioral view of the current session — recent trades, trading vows, and patterns such as Revenge Trading, FOMO, and Over-Leveraging — and can place a *Mindful Speed Bump* in front of a high-risk order: a 6-18 second cognitive interrupt that requires the trader to type a 15-word commitment phrase before confirmation unlocks. Trades still happen. The user remains in control. But the impulse path now has a speed bump in it.
+**Finsight OS** maintains a local behavioral view of the full current account — recent executions, still-open lots, current positions, live holdings, trading vows, and patterns such as Revenge Trading, FOMO, and Over-Leveraging — and can place a *Mindful Speed Bump* in front of a high-risk order: a 6-18 second cognitive interrupt that requires the trader to type a 15-word commitment phrase before confirmation unlocks. Trades still happen. The user remains in control. But the impulse path now has a speed bump in it.
 
 Behavioral intelligence runs locally by default. Public quote lookups are inbound-only, and optional Live Kite mode uses user-authorized broker calls without exporting Finsight's behavioral scores, nudges, or longitudinal profile. Speaks English, Hindi, Telugu, Tamil. Runs on a four-year-old laptop.
+
+Every completed order invalidates the previous analysis and rebuilds the behavioral context from the latest account snapshot before Fin AI responds again.
 
 ---
 
@@ -45,9 +47,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) → pick a mode → start exploring.
 
-For Live Kite Connect, follow [`docs/kite-setup.md`](docs/kite-setup.md) (5 minutes, free).
-
-For GitHub + Vercel + Railway deployment, follow [`docs/deploy.md`](docs/deploy.md). For GPU-backed Gemma, see [`docs/gpu-setup.md`](docs/gpu-setup.md).
+For Live Kite Connect, follow [`docs/kite-setup.md`](docs/kite-setup.md) (5 minutes, free). For GPU-backed Gemma, see [`docs/gpu-setup.md`](docs/gpu-setup.md).
 
 ---
 
@@ -59,7 +59,7 @@ Open the dashboard and you'll see seven things working at once:
 2. **Today's Trades** — real paper trades persisted to SQLite with FIFO matching, P&L rendered per closing leg, "open" badges on in-flight positions
 3. **Margin Usage** — derived from open paper positions, color-coded green/amber/red based on usage
 4. **Trading Vows** — user's pre-committed identity contract, editable, fed into Gemma's prompt every analysis
-5. **Finsight Intelligence** — behavioral score 0-1000, risk level, pattern, commitment phrase in EN + local language, vow violations, SEBI disclosure
+5. **Finsight Intelligence** — behavioral score 0-1000, risk level, pattern, commitment phrase in EN + local language, vow violations, SEBI disclosure, and an automatic refresh after every completed order
 6. **Streaming Audit Trace** — a 7-step evidence trail streams to the UI via SSE, each step clickable to drill into evidence
 7. **Mindful Speed Bump** — modal triggered on high-risk BUY/SELL with countdown ring, exact-match phrase typing, dynamic cooldown by pattern
 
@@ -75,7 +75,7 @@ Behavioral intelligence stays on the user's device. Public Yahoo Finance quotes 
 |---|---|
 | **Frontend** | Next.js 14 (App Router), TypeScript, inline-CSS theme, DM Sans, Server-Sent Events client |
 | **API** | FastAPI + Uvicorn, 12 endpoints, mode-aware dispatcher |
-| **Engines** | Gemma 4 via Ollama, ChromaDB SEBI RAG, paper-trading SQLite, behavioral DNA SQLite, multimodal vision, Live Kite Connect adapter |
+| **Engines** | Gemma 4 via Ollama, deterministic behavioral rubric, chart fast path, ChromaDB SEBI RAG, paper-trading SQLite, behavioral DNA SQLite, multimodal vision, Live Kite Connect adapter |
 
 Open [`docs/architecture.html`](docs/architecture.html) for the system view and [`docs/data-pipeline.html`](docs/data-pipeline.html) for the end-to-end data flow.
 
@@ -88,7 +88,7 @@ Open [`docs/architecture.html`](docs/architecture.html) for the system view and 
 3. **Multi-language Generation** — nudges in EN / HI / TE / TA
 4. **Structured JSON Output** — strict schema, brace-balanced extraction
 5. **RAG-grounded Responses** — ChromaDB SEBI corpus enriches every nudge
-6. **Longitudinal Context** — SQLite behavioral DNA injected into prompt
+6. **Longitudinal + Account Context** — Behavioral DNA plus current open positions, open lots, and live holdings injected into the prompt
 7. **Domain adaptation via QLoRA** — see [`finetune/`](finetune/README.md) for the rank-16 LoRA pipeline trained on a SEBI-grounded instruction dataset, runnable on a free Kaggle T4 GPU in ~2 hours
 
 ---
@@ -97,21 +97,11 @@ Open [`docs/architecture.html`](docs/architecture.html) for the system view and 
 
 | Doc | Purpose |
 |---|---|
-| [`docs/run-locally.md`](docs/run-locally.md) | End-to-end local setup (backend + frontend + Kite + troubleshooting) |
-| [`docs/judge-local-gemma.md`](docs/judge-local-gemma.md) | Copy-paste judge path to verify real Gemma 4 inference locally |
-| [`docs/model-attribution.md`](docs/model-attribution.md) | Gemma model variant naming, trademark attribution, and non-affiliation notes |
-| [`docs/kaggle-writeup.md`](docs/kaggle-writeup.md) | Kaggle submission writeup (1500 words) |
 | [`docs/architecture.html`](docs/architecture.html) | System architecture diagram (open in browser) |
 | [`docs/data-pipeline.html`](docs/data-pipeline.html) | End-to-end data pipeline diagram |
-| [`docs/cover-image.html`](docs/cover-image.html) | 1280×720 submission cover image |
 | [`docs/kite-setup.md`](docs/kite-setup.md) | 5-minute Live Kite Connect walkthrough |
-| [`docs/deploy.md`](docs/deploy.md) | GitHub + Vercel + Railway deployment guide |
 | [`docs/gpu-setup.md`](docs/gpu-setup.md) | Cloud GPU deployment recipes (Kaggle / RunPod / Modal / Colab) |
-| [`docs/video-script.md`](docs/video-script.md) | 3-minute face-cam + screen-recording shot list |
-| [`docs/recording-setup.md`](docs/recording-setup.md) | Equipment + lighting + audio for the face-cam demo |
-| [`docs/talking-points.md`](docs/talking-points.md) | Teleprompter beats for the face-cam delivery |
-| [`docs/references.md`](docs/references.md) | Behavioral finance + SEBI bibliography |
-| [`docs/finetune-results.md`](docs/finetune-results.md) | Fine-tune benchmark table (base vs. LoRA) |
+| [`docs/model-attribution.md`](docs/model-attribution.md) | Gemma model variant naming, trademark attribution, and non-affiliation notes |
 | [`finetune/README.md`](finetune/README.md) | LoRA training pipeline overview |
 
 ---
@@ -135,7 +125,9 @@ Open [`docs/architecture.html`](docs/architecture.html) for the system view and 
 | RunPod A4000 (~$0.30/hr) | ~3-5 s | Real inference fast |
 | Modal A10G serverless | ~4-7 s | Real inference at scale |
 
-The full inference pipeline — prompt construction, Ollama call, JSON parsing, RAG enrichment, behavioral DNA persistence, SSE streaming — runs on every request regardless of hardware. Paper and live Kite insights are never stubbed: if Gemma times out or returns invalid JSON, the UI shows an explicit "Gemma unavailable" state instead of a behavioral score or pattern. Override `OLLAMA_NUM_GPU=99` for faster local inference.
+The warm path now does exact scoring, vow matching, and portfolio-risk assembly in Python, emits an immediate behavioral preview, and asks Gemma only for the final pattern wording and nudges. Obvious low-risk sessions can return without a model call, and obvious chart screenshots can use a deterministic chart fast path before falling back to Gemma vision when ambiguity remains.
+
+Paper and live Kite insights are never stubbed: if Gemma times out or returns invalid JSON, the UI shows an explicit "Gemma unavailable" state instead of inventing a behavioral score or pattern. Override `OLLAMA_NUM_GPU=99` for faster local inference.
 
 ---
 

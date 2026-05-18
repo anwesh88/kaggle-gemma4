@@ -280,7 +280,7 @@ export function ThinkingLog({
             textTransform: "uppercase", letterSpacing: "0.07em",
             display: "flex", alignItems: "center", gap: "6px",
           }}>
-            AI model Audit Trace
+            Fin AI Audit Trace
             {streaming && (
               <span style={{
                 fontSize: "9px", fontWeight: "700",
@@ -300,8 +300,8 @@ export function ThinkingLog({
           </div>
           <div style={{ fontSize: "10px", color: "#9B9890", marginTop: "1px" }}>
             {streaming
-              ? (streamStatus || "Streaming AI audit trace…")
-              : `${stepCount} audit steps · local AI model · data stays private${
+              ? (streamStatus || "Streaming Fin AI audit trace…")
+              : `${stepCount} audit steps · local Fin AI · data stays private${
                   inferenceTime ? ` · ${inferenceTime.toFixed(1)}s` : ""
                 }`}
           </div>
@@ -349,7 +349,7 @@ export function ThinkingLog({
               fontFamily: "'DM Mono', 'Courier New', monospace",
               padding: "8px 10px",
             }}>
-              {streamStatus || "Connecting to AI model…"}<span style={{
+              {streamStatus || "Connecting to Fin AI…"}<span style={{
                 animation: "tl-cursor 1s infinite", color: "#F97316", fontWeight: "700",
               }}>█</span>
             </p>
@@ -478,7 +478,7 @@ export function ThinkingLog({
 // ── Persistent run history ───────────────────────────────────────────────────
 // Reads from the global thinkingLog store. Survives component unmount, page
 // reload, mode switches — anything short of an explicit clear. Groups entries
-// by runId so the user can scroll back through every analysis the AI model has ever
+// by runId so the user can scroll back through every analysis the Fin AI has ever
 // produced for this account.
 
 function PersistentRunHistory() {

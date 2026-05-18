@@ -1,7 +1,7 @@
-import json
+﻿import json
 import sys
 import types
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -10,33 +10,18 @@ from models import Language, MarginData, Trade, TradingContext
 
 
 @pytest.mark.asyncio
-async def test_analyze_behavior_sends_trades_and_vows_to_gemma(monkeypatch):
+async def test_analyze_behavior_sends_compact_context_to_gemma(monkeypatch):
     captured: dict[str, str] = {}
 
-    class FakeAsyncClient:
-        def __init__(self, host: str):
-            captured["host"] = host
+    async def fake_generate(prompt: str, *, retry: bool = False):
+        captured["prompt"] = prompt
+        return ({
+            "detected_pattern": "Over-Leveraging",
+            "nudge_message": "",
+            "nudge_message_local": "",
+        }, 0.12, json.dumps({"detected_pattern": "Over-Leveraging"}))
 
-        async def generate(self, **kwargs):
-            captured["prompt"] = kwargs["prompt"]
-            captured["model"] = kwargs["model"]
-            return {
-                "response": json.dumps({
-                    "behavioral_score": 640,
-                    "risk_level": "high",
-                    "detected_pattern": "Over-Leveraging",
-                    "nudge_message": "I am increasing exposure too quickly, and I need to reduce risk before trading.",
-                    "nudge_message_local": "",
-                    "vows_violated": ["I will not use more than 50% of my margin"],
-                    "crisis_score": 22,
-                })
-            }
-
-    monkeypatch.setitem(
-        sys.modules,
-        "ollama",
-        types.SimpleNamespace(AsyncClient=FakeAsyncClient),
-    )
+    monkeypatch.setattr(ai_engine, "_generate_behavior_json", fake_generate)
 
     ctx = TradingContext(
         recent_trades=[
@@ -46,7 +31,7 @@ async def test_analyze_behavior_sends_trades_and_vows_to_gemma(monkeypatch):
                 action="BUY",
                 quantity=10,
                 price=1298.40,
-                timestamp=datetime(2026, 5, 13, 17, 4, tzinfo=timezone.utc),
+                timestamp=datetime.now(timezone.utc),
                 pnl=None,
                 is_loss=False,
             )
@@ -58,40 +43,61 @@ async def test_analyze_behavior_sends_trades_and_vows_to_gemma(monkeypatch):
         ],
         preferred_language=Language.EN,
         source_mode="paper",
+        open_positions_count=1,
+        total_exposure=12_984.0,
+        exposure_concentration=1.0,
+        portfolio_positions=["BUY RELIANCE qty=10 avg=1298.4"],
     )
 
     result = await ai_engine.analyze_behavior(ctx)
 
-    assert captured["model"] == ai_engine.OLLAMA_MODEL
-    assert "Trades this session: 1 (0 closed, 1 open)" in captured["prompt"]
+    assert "Exact rubric already computed in Python" in captured["prompt"]
+    assert "Session: 1 trades (0 closed, 1 open)" in captured["prompt"]
     assert "BUY RELIANCE qty=10 @ Rs.1298.40 pnl=unrealized OPEN" in captured["prompt"]
+    assert "Portfolio: positions BUY RELIANCE qty=10 avg=1298.4" in captured["prompt"]
     assert "I will not use more than 50% of my margin" in captured["prompt"]
-    assert result.behavioral_score == 640
+    assert result.behavioral_score == 300
     assert result.detected_pattern == "Over-Leveraging"
     assert result.vows_violated == ["I will not use more than 50% of my margin"]
-    assert "Gemma received 1 trade(s) (1 open, 0 closed)" in (result.thinking_log or "")
+    assert result.analysis_source == "gemma_backed"
+    assert "Python checked 1 trade(s) (1 open, 0 closed)" in (result.thinking_log or "")
     assert "No trades placed yet" not in (result.thinking_log or "")
 
 
 @pytest.mark.asyncio
 async def test_analyze_behavior_timeout_is_explicit_unavailable(monkeypatch):
-    class SlowAsyncClient:
-        def __init__(self, host: str):
-            pass
+    async def fake_generate(prompt: str, *, retry: bool = False):
+        raise asyncio.TimeoutError("simulated model stall")
 
-        async def generate(self, **kwargs):
-            raise TimeoutError("simulated model stall")
+    import asyncio
+    monkeypatch.setattr(ai_engine, "_generate_behavior_json", fake_generate)
 
-    monkeypatch.setitem(
-        sys.modules,
-        "ollama",
-        types.SimpleNamespace(AsyncClient=SlowAsyncClient),
-    )
-
+    now = datetime.now(timezone.utc)
     ctx = TradingContext(
-        recent_trades=[],
-        margin=MarginData(available=100_000, used=0, total=100_000),
-        trading_vows=[],
+        recent_trades=[
+            Trade(
+                trade_id="L1",
+                symbol="INFY",
+                action="BUY",
+                quantity=1,
+                price=100.0,
+                timestamp=now - timedelta(minutes=10),
+                pnl=-100.0,
+                is_loss=True,
+            ),
+            Trade(
+                trade_id="L2",
+                symbol="INFY",
+                action="BUY",
+                quantity=1,
+                price=100.0,
+                timestamp=now - timedelta(minutes=5),
+                pnl=-100.0,
+                is_loss=True,
+            ),
+        ],
+        margin=MarginData(available=20_000, used=80_000, total=100_000),
+        trading_vows=["I will stop trading after 2 consecutive losses"],
         preferred_language=Language.EN,
         source_mode="paper",
     )
@@ -100,4 +106,5 @@ async def test_analyze_behavior_timeout_is_explicit_unavailable(monkeypatch):
 
     assert result.detected_pattern == "Gemma unavailable"
     assert result.inference_seconds is None
+    assert result.analysis_source == "unavailable"
     assert "no model insight produced" in (result.thinking_log or "")
