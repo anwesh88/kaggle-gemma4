@@ -3,7 +3,7 @@
 > A privacy-first behavioral guardian for India's 9.6 million retail F&O traders, built on Gemma 4.
 
 [![Made for Kaggle Gemma 4 Good Hackathon](https://img.shields.io/badge/Kaggle-Gemma%204%20Good%20Hackathon-orange)](https://www.kaggle.com/competitions/gemma-4-good-hackathon)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](LICENSE)
 [![Edge AI](https://img.shields.io/badge/Edge%20AI-100%25%20local-green)]()
 [![Free tier broker](https://img.shields.io/badge/Live%20Kite%20Connect-%E2%82%B90%2Fmonth-success)]()
 
@@ -156,7 +156,9 @@ Network audit: run `pip install pip-audit` then `pip-audit` to verify dependency
 
 ## License
 
-[MIT](LICENSE) — free to fork, modify, and ship. Pull requests welcome.
+[CC BY 4.0](LICENSE) — unless otherwise noted, all original material in this repository is licensed under the Creative Commons Attribution 4.0 International License.
+
+Third-party dependencies, datasets, trademarks, and Gemma model weights remain under their respective terms and are not relicensed by this repository.
 
 ## Attribution
 
