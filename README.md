@@ -166,5 +166,3 @@ Third-party dependencies, datasets, trademarks, and Gemma model weights remain u
 ## Contact
 
 Built by [@anweshmohanty](https://github.com/anweshmohanty) for the [Kaggle Gemma 4 Good Hackathon](https://www.kaggle.com/competitions/gemma-4-good-hackathon), May 2026.
-
-If you're at SEBI, Zerodha, or any institution working on retail investor protection in India, this is open source — let's talk about a pilot. Email: anweshmohanty69@gmail.com
