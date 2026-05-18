@@ -119,3 +119,4 @@ JUDGES.md
 WINNING_PLAYBOOK.md
 docker-compose.yml
 railway.json
+docs/gpu-setup.md

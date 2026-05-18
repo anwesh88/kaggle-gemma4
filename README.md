@@ -47,7 +47,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) → pick a mode → start exploring.
 
-For Live Kite Connect, follow [`docs/kite-setup.md`](docs/kite-setup.md) (5 minutes, free). For GPU-backed Gemma, see [`docs/gpu-setup.md`](docs/gpu-setup.md).
+For Live Kite Connect, follow [`docs/kite-setup.md`](docs/kite-setup.md) (5 minutes, free).
 
 ---
 
@@ -100,7 +100,6 @@ Open [`docs/architecture.html`](docs/architecture.html) for the system view and 
 | [`docs/architecture.html`](docs/architecture.html) | System architecture diagram (open in browser) |
 | [`docs/data-pipeline.html`](docs/data-pipeline.html) | End-to-end data pipeline diagram |
 | [`docs/kite-setup.md`](docs/kite-setup.md) | 5-minute Live Kite Connect walkthrough |
-| [`docs/gpu-setup.md`](docs/gpu-setup.md) | Cloud GPU deployment recipes (Kaggle / RunPod / Modal / Colab) |
 | [`docs/model-attribution.md`](docs/model-attribution.md) | Gemma model variant naming, trademark attribution, and non-affiliation notes |
 | [`finetune/README.md`](finetune/README.md) | LoRA training pipeline overview |
 
