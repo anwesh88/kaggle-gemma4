@@ -117,3 +117,5 @@ JUDGE_LOCAL.md
 RUN_LOCALLY.md
 JUDGES.md
 WINNING_PLAYBOOK.md
+docker-compose.yml
+railway.json
