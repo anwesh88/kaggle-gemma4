@@ -2,7 +2,7 @@
 ai_engine.py — Gemma 4 behavioral analysis engine.
 
 Features used:
-  1. Thinking Mode (<|think|>) — transparent reasoning
+  1. Auditable analysis trace — post-inference evidence summary
   2. Structured JSON output — strict schema
   3. Multi-language generation — Hindi/English/Telugu/Tamil nudges
   4. Vow-aware analysis — identity contract checking
@@ -113,9 +113,9 @@ LANG_NAMES = {"en": "English", "hi": "Hindi (Devanagari script)", "te": "Telugu"
 
 def build_analysis_prompt(ctx: TradingContext) -> str:
     """
-    Compressed prompt tuned for CPU inference. Keeps the 7-step reasoning
-    chain and structured JSON output intact, but cuts ~200 tokens of verbose
-    instructions that the model didn't need.
+    Compressed prompt tuned for CPU inference. Keeps the structured analysis
+    contract intact while cutting ~200 tokens of verbose instructions that the
+    model didn't need.
     """
     losses = [t for t in ctx.recent_trades if t.is_loss]
     loss_count = len(losses)
@@ -174,7 +174,7 @@ Inferred loss streak: {ctx.inferred_loss_streak}
 Snapshot notes: {notes}
 """
 
-    return f"""You are Finsight OS, a behavioral guardian for retail F&O traders in India. 93% lose money. Detect emotional patterns and intervene.
+    return f"""You are Finsight OS, a behavioral guardian for self-directed market participants in India. In SEBI's FY2024-25 derivatives study, 91% of individual F&O traders lost money. Detect emotional patterns and intervene.
 
 DATA
 Trades this session: {len(ctx.recent_trades)} ({closed_count} closed, {open_count} open)
@@ -447,7 +447,7 @@ async def analyze_behavior(ctx: TradingContext) -> BehavioralAnalysis:
 
     # Console log for technical verification
     print("\n" + "="*60)
-    print("[GEMMA THINKING LOG — Technical Verification]")
+    print("[GEMMA AUDIT TRACE — Technical Verification]")
     print("="*60)
     print(thinking_log)
     print("="*60 + "\n")

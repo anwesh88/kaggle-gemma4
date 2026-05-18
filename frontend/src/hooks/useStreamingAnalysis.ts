@@ -138,7 +138,7 @@ export function useStreamingAnalysis(
               ...prev,
               analysis: ev.analysis,
               // Prefer the result's audited log over any partial stream text.
-              // thinking_log because it includes the synthesized 7-step trace
+              // thinking_log because it includes the audited 7-step trace
               // formatted consistently with the e4b real-inference path.
               streamingText: ev.analysis.thinking_log ?? prev.streamingText,
             }));

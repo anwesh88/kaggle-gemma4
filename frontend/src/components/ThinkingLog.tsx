@@ -280,7 +280,7 @@ export function ThinkingLog({
             textTransform: "uppercase", letterSpacing: "0.07em",
             display: "flex", alignItems: "center", gap: "6px",
           }}>
-            AI model Thinking Log
+            AI model Audit Trace
             {streaming && (
               <span style={{
                 fontSize: "9px", fontWeight: "700",
@@ -300,8 +300,8 @@ export function ThinkingLog({
           </div>
           <div style={{ fontSize: "10px", color: "#9B9890", marginTop: "1px" }}>
             {streaming
-              ? (streamStatus || "Streaming AI model reasoning…")
-              : `${stepCount} reasoning steps · local AI model · data stays private${
+              ? (streamStatus || "Streaming AI audit trace…")
+              : `${stepCount} audit steps · local AI model · data stays private${
                   inferenceTime ? ` · ${inferenceTime.toFixed(1)}s` : ""
                 }`}
           </div>
@@ -465,7 +465,7 @@ export function ThinkingLog({
             textAlign: "center",
           }}>
             <p style={{ fontSize: "11px", color: "#9B9890" }}>
-              🔒 This reasoning ran entirely on your device — no cloud, no surveillance
+              🔒 This audit trace was assembled on your device — no cloud, no surveillance
             </p>
           </div>
         </div>
@@ -513,7 +513,7 @@ function PersistentRunHistory() {
         </button>
         {open && (
           <button
-            onClick={() => { if (confirm("Clear all stored reasoning logs?")) clear(); }}
+            onClick={() => { if (confirm("Clear all stored audit logs?")) clear(); }}
             style={{
               background: "none", border: "none", padding: 0, cursor: "pointer",
               fontSize: "10px", color: "#DC2626", fontWeight: 700,

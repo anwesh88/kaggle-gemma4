@@ -711,7 +711,7 @@ export function Dashboard() {
             );
           })()}
 
-          {/* ── AI model Thinking Log (live token stream + clickable evidence) ── */}
+          {/* ── AI model Audit Trace (live token stream + clickable evidence) ── */}
           <ThinkingLog
             log={analysis?.thinking_log ?? null}
             inferenceTime={analysis?.inference_seconds ?? undefined}
@@ -817,8 +817,8 @@ export function Dashboard() {
             </p>
             <p style={{ fontSize: "11px", color: "#92400E", marginTop: "4px",
               lineHeight: "1.5", opacity: 0.85 }}>
-              All behavioral analysis runs locally on your device via Ollama.
-              Zero financial data sent to any server.
+              Behavioral analysis runs locally on your device via Ollama.
+              Public quotes are inbound-only, and optional Live Kite mode uses user-authorized broker calls.
             </p>
             <p style={{ fontSize: "10px", color: "#92400E", marginTop: "6px",
               lineHeight: "1.45", opacity: 0.72 }}>

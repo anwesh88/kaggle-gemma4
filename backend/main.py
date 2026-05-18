@@ -424,7 +424,7 @@ async def analyze_stream(request: Request):
     """
     Server-Sent Events variant of /analyze-behavior.
 
-    Streams Gemma's reasoning token-by-token to the UI as it's produced.
+    Streams the audited analysis trace token-by-token to the UI as it's produced.
     Each event is a JSON object with one of:
         {"type": "status",  "message": str}
         {"type": "token",   "text":    str}
